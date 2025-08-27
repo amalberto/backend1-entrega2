@@ -6,7 +6,7 @@ const cartsRouter = require('./api/routes/carts.router');
 const app = express();
 const PORT = 8080;
 
-// Buenas prácticas
+// Hardening y buenas prácticas
 app.disable('x-powered-by');
 app.use(cors());
 app.use(express.json());
@@ -21,7 +21,7 @@ app.use((req, res, next) => {
 app.use('/products', productsRouter);
 app.use('/carts', cartsRouter);
 
-// Home opcional
+// Home
 app.get('/', (req, res) => {
   res.json({
     message: 'API con FileSystem - Node.js + Express',
@@ -34,7 +34,7 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
-// Error handler
+// Manejo de errores
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Error interno del servidor' });

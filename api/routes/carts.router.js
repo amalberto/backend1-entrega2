@@ -1,47 +1,47 @@
-const express = require('express');
+const { Router } = require('express');
+const path = require('path');
 const CartManager = require('../managers/CartManager');
 
-const router = express.Router();
+const router = Router();
+const cartsPath = path.resolve(__dirname, '..', 'data', 'carts.json');
+const productsPath = path.resolve(__dirname, '..', 'data', 'products.json');
+CartManager.init(cartsPath, productsPath);
 
-router.post('/', async (req, res) => {
+const toNum = v => Number(v);
+const isNum = v => Number.isFinite(v);
+
+router.post('/', async (req, res, next) => {
   try {
-    const carrito = await CartManager.addCarrito();
-    res.status(201).json(carrito);
-  } catch (error) {
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
+    const cart = await CartManager.createCart();
+    res.status(201).json(cart);
+  } catch (e) { next(e); }
 });
 
-router.get('/:cid', async (req, res) => {
+router.get('/:cid', async (req, res, next) => {
   try {
-    const idCarrito = Number(req.params.cid);
-    if (isNaN(idCarrito)) return res.status(400).json({ error: 'ID de carrito inválido' });
+    const cid = toNum(req.params.cid);
+    if (!isNum(cid)) return res.status(400).json({ error: 'El cid debe ser numérico' });
 
-    const carrito = await CartManager.getCarritoPorId(idCarrito);
-    if (!carrito) return res.status(404).json({ error: 'Carrito no encontrado' });
-
-    res.json(carrito.products);
-  } catch (error) {
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
+    const cart = await CartManager.getCartById(cid);
+    if (!cart) return res.status(404).json({ error: 'Carrito no encontrado' });
+    res.json(cart.products);
+  } catch (e) { next(e); }
 });
 
-router.post('/:cid/product/:pid', async (req, res) => {
+router.post('/:cid/product/:pid', async (req, res, next) => {
   try {
-    const idCarrito = Number(req.params.cid);
-    const idProducto = Number(req.params.pid);
-    if (isNaN(idCarrito) || isNaN(idProducto)) {
-      return res.status(400).json({ error: 'ID de carrito o producto inválido' });
+    const cid = toNum(req.params.cid);
+    const pid = toNum(req.params.pid);
+    if (!isNum(cid) || !isNum(pid)) {
+      return res.status(400).json({ error: 'El cid y pid deben ser numéricos' });
     }
-
-    const carrito = await CartManager.addProductoAlCarrito(idCarrito, idProducto);
-    res.json(carrito);
-  } catch (error) {
-    if (error.message === 'Carrito no encontrado' || error.message === 'Producto no encontrado') {
-      return res.status(404).json({ error: error.message });
+    const result = await CartManager.addProduct(cid, pid);
+    if (!result) return res.status(404).json({ error: 'Carrito no encontrado' });
+    if (result.error === 'PRODUCT_NOT_FOUND') {
+      return res.status(404).json({ error: 'Producto no encontrado' });
     }
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
+    res.json(result);
+  } catch (e) { next(e); }
 });
 
 module.exports = router;

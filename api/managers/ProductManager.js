@@ -1,143 +1,68 @@
-const fs = require('fs').promises;
-const path = require('path');
+const fs = require('fs');
 
 class ProductManager {
-  static filePath = path.join(__dirname, '../data/products.json');
+  static #path;
 
-  static async cargarProductos() {
+  static init(filePath) {
+    this.#path = filePath;
+  }
+
+  static async #readFile() {
     try {
-      const data = await fs.readFile(this.filePath, 'utf-8');
-      return JSON.parse(data);
+      const content = await fs.promises.readFile(this.#path, 'utf-8');
+      if (content.trim().length === 0) return [];
+      return JSON.parse(content);
     } catch (error) {
-      await fs.writeFile(this.filePath, JSON.stringify([], null, 2));
-      return [];
-    }
-  }
-
-  static async setProductos(productos) {
-    await fs.writeFile(this.filePath, JSON.stringify(productos, null, 2));
-  }
-
-  static async getProductos() {
-    return await this.cargarProductos();
-  }
-
-  static async getProductoPorId(id) {
-    const productos = await this.cargarProductos();
-    return productos.find(producto => producto.id === id);
-  }
-
-  static async addProducto(datosProducto) {
-    const productos = await this.cargarProductos();
-    
-    const requeridos = ['title', 'description', 'code', 'price', 'stock', 'category'];
-    for (const campo of requeridos) {
-      if (!datosProducto[campo] && datosProducto[campo] !== 0) {
-        throw new Error(`Campo requerido faltante: ${campo}`);
+      if (error.code === 'ENOENT') {
+        await fs.promises.writeFile(this.#path, JSON.stringify([]));
+        return [];
       }
+      throw error;
     }
-
-    if (datosProducto.codigo) {
-      datosProducto.code = datosProducto.codigo;
-      delete datosProducto.codigo;
-    }
-
-    if (datosProducto.thumbnail && typeof datosProducto.thumbnail === 'string') {
-      datosProducto.thumbnails = [datosProducto.thumbnail];
-      delete datosProducto.thumbnail;
-    } else if (!datosProducto.thumbnails) {
-      datosProducto.thumbnails = [];
-    }
-
-    datosProducto.price = Number(datosProducto.price);
-    datosProducto.stock = Number(datosProducto.stock);
-    datosProducto.status = datosProducto.status !== undefined ? Boolean(datosProducto.status) : true;
-
-    if (isNaN(datosProducto.price) || isNaN(datosProducto.stock)) {
-      throw new Error('El precio y stock deben ser números válidos');
-    }
-
-    if (productos.some(producto => producto.code === datosProducto.code)) {
-      throw new Error('El código del producto debe ser único');
-    }
-
-    const id = productos.length > 0 ? Math.max(...productos.map(p => p.id)) + 1 : 1;
-    
-    const nuevoProducto = {
-      id,
-      title: datosProducto.title,
-      description: datosProducto.description,
-      code: datosProducto.code,
-      price: datosProducto.price,
-      status: datosProducto.status,
-      stock: datosProducto.stock,
-      category: datosProducto.category,
-      thumbnails: datosProducto.thumbnails
-    };
-
-    productos.push(nuevoProducto);
-    await this.setProductos(productos);
-    return nuevoProducto;
   }
 
-  static async setProducto(id, datosActual) {
-    const productos = await this.cargarProductos();
-    const ind = productos.findIndex(producto => producto.id === id);
-    
-    if (ind === -1) {
-      return null;
-    }
-
-    delete datosActual.id;
-
-    if (datosActual.codigo) {
-      datosActual.code = datosActual.codigo;
-      delete datosActual.codigo;
-    }
-
-    if (datosActual.thumbnail && typeof datosActual.thumbnail === 'string') {
-      datosActual.thumbnails = [datosActual.thumbnail];
-      delete datosActual.thumbnail;
-    }
-
-    if (datosActual.price !== undefined) {
-      datosActual.price = Number(datosActual.price);
-      if (isNaN(datosActual.price)) {
-        throw new Error('El precio debe ser un número válido');
-      }
-    }
-
-    if (datosActual.stock !== undefined) {
-      datosActual.stock = Number(datosActual.stock);
-      if (isNaN(datosActual.stock)) {
-        throw new Error('El stock debe ser un número válido');
-      }
-    }
-
-    if (datosActual.status !== undefined) {
-      datosActual.status = Boolean(datosActual.status);
-    }
-
-    if (datosActual.code && productos.some(producto => producto.code === datosActual.code && producto.id !== id)) {
-      throw new Error('El código del producto debe ser único');
-    }
-
-    productos[ind] = { ...productos[ind], ...datosActual };
-    await this.setProductos(productos);
-    return productos[ind];
+  static async #writeFile(data) {
+    await fs.promises.writeFile(this.#path, JSON.stringify(data, null, 2));
   }
 
-  static async delProducto(id) {
-    const productos = await this.cargarProductos();
-    const ind = productos.findIndex(producto => producto.id === id);
-    
-    if (ind === -1) {
-      return false;
+  static async addProduct(product) {
+    const products = await this.#readFile();
+    let newId = 1;
+    if (products.length > 0) {
+      const maxId = Math.max(...products.map(p => p.id));
+      newId = maxId + 1;
     }
+    const newProduct = { ...product, id: newId };
+    products.push(newProduct);
+    await this.#writeFile(products);
+    return newProduct;
+  }
 
-    productos.splice(ind, 1);
-    await this.setProductos(productos);
-    return true;
+  static async getProducts() {
+    return await this.#readFile();
+  }
+
+  static async getProductById(id) {
+    const idNumber = Number(id);
+    const products = await this.#readFile();
+    return products.find(p => p.id === idNumber) || null;
+  }
+
+  static async updateProduct(id, updates) {
+    const products = await this.#readFile();
+    const idx = products.findIndex(p => p.id === id);
+    if (idx === -1) return null;
+    products[idx] = { ...products[idx], ...updates, id };
+    await this.#writeFile(products);
+    return products[idx];
+  }
+
+  static async deleteProduct(id) {
+    const products = await this.#readFile();
+    const filtered = products.filter(p => p.id !== id);
+    if (filtered.length === products.length) return null;
+    await this.#writeFile(filtered);
+    return id;
   }
 }
 

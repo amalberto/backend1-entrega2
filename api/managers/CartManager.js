@@ -1,75 +1,70 @@
-const fs = require('fs').promises;
-const path = require('path');
+const fs = require('fs');
 const ProductManager = require('./ProductManager');
 
 class CartManager {
-  static filePath = path.join(__dirname, '../data/carts.json');
+  static #path;
 
-  static async cargarCarritos() {
+  static init(cartsFilePath, productsFilePath) {
+    this.#path = cartsFilePath;
+    ProductManager.init(productsFilePath);
+  }
+
+  static async #readFile() {
     try {
-      const data = await fs.readFile(this.filePath, 'utf-8');
-      return JSON.parse(data);
+      const content = await fs.promises.readFile(this.#path, 'utf-8');
+      if (content.trim().length === 0) return [];
+      return JSON.parse(content);
     } catch (error) {
-      await fs.writeFile(this.filePath, JSON.stringify([], null, 2));
-      return [];
+      if (error.code === 'ENOENT') {
+        await fs.promises.writeFile(this.#path, JSON.stringify([]));
+        return [];
+      }
+      throw error;
     }
   }
 
-  static async setCarritos(carritos) {
-    await fs.writeFile(this.filePath, JSON.stringify(carritos, null, 2));
+  static async #writeFile(data) {
+    await fs.promises.writeFile(this.#path, JSON.stringify(data, null, 2));
   }
 
-  static async getCarritos() {
-    return await this.cargarCarritos();
+  static async #nextId() {
+    const carts = await this.#readFile();
+    if (carts.length === 0) return 1;
+    const maxId = Math.max(...carts.map(c => Number(c.id) || 0));
+    return maxId + 1;
   }
 
-  static async addCarrito() {
-    const carritos = await this.cargarCarritos();
-    
-    const id = carritos.length > 0 ? Math.max(...carritos.map(c => c.id)) + 1 : 1;
-    
-    const nuevoCarrito = {
-      id,
-      products: []
-    };
-
-    carritos.push(nuevoCarrito);
-    await this.setCarritos(carritos);
-    return nuevoCarrito;
+  static async createCart() {
+    const carts = await this.#readFile();
+    const cart = { id: await this.#nextId(), products: [] };
+    carts.push(cart);
+    await this.#writeFile(carts);
+    return cart;
   }
 
-  static async getCarritoPorId(id) {
-    const carritos = await this.cargarCarritos();
-    return carritos.find(carrito => carrito.id === id);
+  static async getCartById(cid) {
+    const carts = await this.#readFile();
+    const idNum = Number(cid);
+    return carts.find(c => Number(c.id) === idNum) || null;
   }
 
-  static async addProductoAlCarrito(idCarrito, idProducto) {
-    const carritos = await this.cargarCarritos();
-    const indCarrito = carritos.findIndex(carrito => carrito.id === idCarrito);
-    
-    if (indCarrito === -1) {
-      throw new Error('Carrito no encontrado');
-    }
+  static async addProduct(cid, pid) {
+    const carts = await this.#readFile();
+    const idNum = Number(cid);
+    const cartIdx = carts.findIndex(c => Number(c.id) === idNum);
+    if (cartIdx === -1) return null;
 
-    const producto = await ProductManager.getProductoPorId(idProducto);
-    if (!producto) {
-      throw new Error('Producto no encontrado');
-    }
+    const product = await ProductManager.getProductById(pid);
+    if (!product) return { error: 'PRODUCT_NOT_FOUND' };
 
-    const carrito = carritos[indCarrito];
-    const indProductoExistente = carrito.products.findIndex(item => item.product === idProducto);
+    const cart = carts[cartIdx];
+    const line = cart.products.find(p => Number(p.product) === Number(pid));
+    if (line) line.quantity += 1;
+    else cart.products.push({ product: Number(pid), quantity: 1 });
 
-    if (indProductoExistente !== -1) {
-      carrito.products[indProductoExistente].quantity += 1;
-    } else {
-      carrito.products.push({
-        product: idProducto,
-        quantity: 1
-      });
-    }
-
-    await this.setCarritos(carritos);
-    return carrito;
+    carts[cartIdx] = cart;
+    await this.#writeFile(carts);
+    return cart;
   }
 }
 
