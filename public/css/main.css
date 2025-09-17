@@ -1,0 +1,5 @@
+body { font-family: system-ui, Arial, sans-serif; margin: 0; }
+.container { padding: 1rem 1.25rem; }
+ul { padding-left: 1.22rem; }
+label { display: block; margin: .35rem 0; }
+button { cursor: pointer; }

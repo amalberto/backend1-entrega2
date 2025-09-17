@@ -1,0 +1,25 @@
+{{> header}}
+<h2>Productos (tiempo real)</h2>
+
+<section style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+  <div>
+    <ul id="products-list"></ul>
+  </div>
+  <div>
+    <h3>Crear producto</h3>
+    <form id="create-form">
+      <label>Título <input name="title" required></label><br>
+      <label>Descripción <input name="description" required></label><br>
+      <label>Código <input name="code" required></label><br>
+      <label>Precio <input name="price" type="number" step="any" required></label><br>
+      <label>Stock <input name="stock" type="number" required></label><br>
+      <label>Categoría <input name="category" required></label><br>
+      <label>Thumbnails (separados por coma) <input name="thumbnails"></label><br>
+      <label>Activo <input name="status" type="checkbox" checked></label><br>
+      <button type="submit">Crear</button>
+    </form>
+  </div>
+</section>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/realtime.js"></script>

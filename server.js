@@ -1,17 +1,17 @@
 const express = require('express');
 const cors = require('cors');
-const productsRouter = require('./api/routes/products.router');
-const cartsRouter = require('./api/routes/carts.router');
+const productsRouter = require('./src/routes/products.router');
+const cartsRouter = require('./src/routes/carts.router');
 
 const app = express();
 const PORT = 8080;
 
-// Hardening y buenas prácticas
+// Hardening 
 app.disable('x-powered-by');
 app.use(cors());
 app.use(express.json());
 
-// Logger mínimo
+// Logger 
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();

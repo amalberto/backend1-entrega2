@@ -1,12 +1,15 @@
 {
-  "name": "backend1-entrega1-aguirre-alberto",
+  "name": "backend1-entrega2-Aguirre-Alberto",
   "version": "1.0.0",
   "private": true,
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node index.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.19.2",
-    "cors": "^2.8.5"
+    "express-handlebars": "^7.1.2",
+    "socket.io": "^4.7.5"
   }
 }

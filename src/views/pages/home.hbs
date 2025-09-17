@@ -1,0 +1,12 @@
+{{> header}}
+<h2>Productos</h2>
+{{#if products.length}}
+  <ul>
+  {{#each products}}
+    <li><strong>{{title}}</strong> — ${{price}} — código: {{code}} — stock: {{stock}}</li>
+  {{/each}}
+  </ul>
+{{else}}
+  <p>No hay productos todavía.</p>
+{{/if}}
+<p><a href="/realtimeproducts">Ver en tiempo real</a></p>
