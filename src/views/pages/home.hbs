@@ -826,12 +826,22 @@ document.addEventListener('DOMContentLoaded', function() {
               // Error silencioso para mantener la función estable
             }
             
+            // Construir mensaje adicional si se creó el archivo .env
+            const envCreatedMessage = changeData.envFileCreated ? `
+              <hr style="margin: 15px 0; border-color: #dee2e6;">
+              <div style="color: #0c5460; background: #d1ecf1; padding: 12px; border-radius: 6px; border: 1px solid #bee5eb;">
+                <p style="margin: 0 0 8px 0; font-weight: bold;">📄 Archivo .env Creado</p>
+                <p style="margin: 0; font-size: 0.9em;">Se ha creado automáticamente el archivo .env con la configuración predeterminada para MongoDB.</p>
+              </div>
+            ` : '';
+            
             await Swal.fire({
               icon: 'warning',
               title: 'Sistema de Persistencia Cambiado',
               html: `
                 <div style="text-align: left; margin: 20px 0;">
                   <p style="margin-bottom: 15px;"><strong>✅ ${changeData.message}</strong></p>
+                  ${envCreatedMessage}
                   <hr style="margin: 15px 0; border-color: #dee2e6;">
                   <div style="color: #856404; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeaa7;">
                     <p style="margin: 0 0 10px 0; font-weight: bold;">⚠️ Reinicio Requerido</p>

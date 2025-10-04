@@ -13,36 +13,56 @@ exports.changePersistence = async (req, res, next) => {
     }
     
     const envPath = path.join(__dirname, '..', '..', '.env');
+    const newPersistence = persistence.toLowerCase();
     
-    // Leer archivo .env actual
+    // Verificar si el archivo .env existe, si no crearlo con configuración predeterminada
     let envContent = '';
+    let envExists = true;
+    
     try {
       envContent = fs.readFileSync(envPath, 'utf-8');
     } catch (error) {
-      return res.status(500).json({
-        error: 'No se pudo leer el archivo .env'
-      });
+      // El archivo .env no existe, crear uno nuevo con configuración predeterminada
+      envExists = false;
+      envContent = `NODE_ENV=development
+PORT=8080
+DB_NAME=backend1
+PERSISTENCE=${newPersistence}
+MONGO_URL=mongodb://localhost:27017/backend1`;
+      
+      console.log('⚠️  Archivo .env no encontrado, creando uno nuevo con configuración predeterminada');
     }
     
-    // Actualizar la línea de PERSISTENCE
-    const newPersistence = persistence.toLowerCase();
-    const lines = envContent.split('\n');
-    let updated = false;
+    // Si el archivo ya existía, actualizar la línea de PERSISTENCE
+    let newContent = envContent;
     
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].startsWith('PERSISTENCE=')) {
-        lines[i] = `PERSISTENCE=${newPersistence}`;
-        updated = true;
-        break;
+    if (envExists) {
+      const lines = envContent.split('\n');
+      let persistenceUpdated = false;
+      let mongoUrlExists = false;
+      
+      // Buscar y actualizar PERSISTENCE
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith('PERSISTENCE=')) {
+          lines[i] = `PERSISTENCE=${newPersistence}`;
+          persistenceUpdated = true;
+        } else if (lines[i].startsWith('MONGO_URL=')) {
+          mongoUrlExists = true;
+        }
       }
+      
+      // Si no existe la línea PERSISTENCE, agregarla
+      if (!persistenceUpdated) {
+        lines.push(`PERSISTENCE=${newPersistence}`);
+      }
+      
+      // Si se está cambiando a mongo y no existe MONGO_URL, agregarla
+      if (newPersistence === 'mongo' && !mongoUrlExists) {
+        lines.push(`MONGO_URL=mongodb://localhost:27017/backend1`);
+      }
+      
+      newContent = lines.join('\n');
     }
-    
-    // Si no existe la línea, agregarla
-    if (!updated) {
-      lines.push(`PERSISTENCE=${newPersistence}`);
-    }
-    
-    const newContent = lines.join('\n');
     
     // Escribir el archivo actualizado
     try {
@@ -53,17 +73,20 @@ exports.changePersistence = async (req, res, next) => {
       });
     }
     
-    // Actualizar la variable de entorno en el proceso actual
+    // Actualizar las variables de entorno en el proceso actual
     const oldPersistence = process.env.PERSISTENCE;
     process.env.PERSISTENCE = newPersistence;
     
+    const messageExtra = envExists ? '' : ' (archivo .env creado automáticamente)';
+    
     res.json({
       success: true,
-      message: `Persistencia cambiada a ${newPersistence.toUpperCase()}`,
+      message: `Persistencia cambiada a ${newPersistence.toUpperCase()}${messageExtra}`,
       currentPersistence: newPersistence,
       previousPersistence: oldPersistence,
       requiresRestart: true,
-      dataCleared: true
+      dataCleared: true,
+      envFileCreated: !envExists
     });
     
   } catch (error) {
