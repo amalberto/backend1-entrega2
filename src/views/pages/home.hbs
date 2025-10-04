@@ -971,8 +971,12 @@ document.addEventListener('DOMContentLoaded', function() {
             await Swal.fire({
               title: '✅ Migración Completada',
               text: 'Datos migrados de File System a MongoDB',
-              icon: 'success'
+              icon: 'success',
+              timer: 2000
             });
+            
+            // Recargar página para mostrar los datos actualizados
+            setTimeout(() => window.location.reload(), 1000);
           } else {
             throw new Error('Error en migración');
           }
@@ -1016,8 +1020,12 @@ document.addEventListener('DOMContentLoaded', function() {
             await Swal.fire({
               title: '✅ Migración Completada',
               text: 'Datos migrados de MongoDB a File System',
-              icon: 'success'
+              icon: 'success',
+              timer: 2000
             });
+            
+            // Recargar página para mostrar los datos actualizados
+            setTimeout(() => window.location.reload(), 1000);
           } else {
             throw new Error('Error en migración');
           }
