@@ -6,11 +6,10 @@
   "scripts": {
     "start": "node index.js",
     "stop": "taskkill /F /IM node.exe 2>nul || pkill -f node || true",
-    "db:export": "node scripts/export-database.js",
-    "db:import": "node scripts/import-database.js",
+    "use:mongo": "node scripts/use-mongo.js",
     "db:seed": "node scripts/seed-products.js",
-    "db:setup": "node scripts/smart-setup.js",
-    "setup": "npm install && npm run db:setup"
+    "db:export": "node scripts/export-database.js",
+    "db:import": "node scripts/import-database.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

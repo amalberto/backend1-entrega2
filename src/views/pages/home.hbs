@@ -132,18 +132,7 @@
         </div>
       </div>
 
-      <!-- Configuración inicial -->
-      <div class="management-card">
-        <div class="card-header">
-          <h3>Configuración</h3>
-        </div>
-        <div class="card-content">
-          <p>Ejecutar configuración inteligente del sistema</p>
-          <button id="smartSetup" class="action-btn info">
-            Configuración Automática
-          </button>
-        </div>
-      </div>
+
     </div>
   </div>
 
@@ -1048,60 +1037,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-  // Configuración automática
-  const smartSetupBtn = document.getElementById('smartSetup');
-  if (smartSetupBtn) {
-    smartSetupBtn.addEventListener('click', async function() {
-      const result = await Swal.fire({
-        title: '🚀 Configuración Automática',
-        html: `
-          <div style="text-align: left; margin: 20px 0;">
-            <p>La configuración automática:</p>
-            <ul style="margin: 10px 0; padding-left: 20px;">
-              <li>🔍 Detectará la mejor configuración</li>
-              <li>⚙️ Configurará MongoDB o File System</li>
-              <li>📦 Cargará datos de ejemplo si es necesario</li>
-            </ul>
-          </div>
-        `,
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonText: '🚀 Ejecutar',
-        cancelButtonText: 'Cancelar'
-      });
 
-      if (result.isConfirmed) {
-        smartSetupBtn.disabled = true;
-        smartSetupBtn.textContent = '⏳ Configurando...';
-        
-        try {
-          const response = await fetch('/api/admin/smart-setup', {
-            method: 'POST'
-          });
-          
-          if (response.ok) {
-            await Swal.fire({
-              title: '✅ Configuración Completada',
-              text: 'El sistema ha sido configurado automáticamente',
-              icon: 'success'
-            });
-            
-            setTimeout(() => window.location.reload(), 1000);
-          } else {
-            throw new Error('Error en configuración');
-          }
-        } catch (error) {
-          await Swal.fire({
-            title: 'Error',
-            text: 'No se pudo completar la configuración',
-            icon: 'error'
-          });
-        } finally {
-          smartSetupBtn.disabled = false;
-          smartSetupBtn.textContent = '🚀 Configuración Automática';
-        }
-      }
-    });
-  }
 });
 </script>

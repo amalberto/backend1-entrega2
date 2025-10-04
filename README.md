@@ -26,7 +26,7 @@ Sistema de gestión de productos y carritos con doble persistencia (MongoDB/File
 
 ### Requisitos Previos
 - **Node.js** v14 o superior
-- **MongoDB** (óptimo - también funciona con FileSystem)
+- **MongoDB** (opcional, pero recomendado - también funciona con FileSystem en caso de no estar instalado Mongo) 
 
 ### Instalación
 
@@ -38,66 +38,48 @@ npm install
 
 ### Configuración - Dos opciones disponibles:
 
-####  **Opción 1: Configuración Automática (Recomendada)**
-La forma más sencilla de empezar. El sistema se configurará automáticamente y podrás cambiar la persistencia desde la interfaz web:
+####  **Inicio Rápido**
+La forma más sencilla de empezar:
 
 ```bash
+npm install
 npm start
 ```
 
-Luego visita http://localhost:8080 y:
-1. El sistema iniciará con **FileSystem** por defecto
-2. Para cambiar a **MongoDB** (requiere Mongo instalado), simplemente haz clic en el botón **"Cambiar a MongoDB"**
-3. El sistema creará automáticamente el archivo `.env` con la configuración correcta
-4. Reinicia el servidor cuando se te indique, utilizando los comandos 'npm stop' (o CTRL+C en el terminal) y luego 'npm start'.
+El sistema iniciará por defecto con **FileSystem** (archivos JSON locales). Visita http://localhost:8080 y tendrás acceso a todas las funcionalidades.
 
-####  **Opción 2: Configuración Manual**
-Si preferís configurá todo manualmente desde el inicio:
+####  **Configurar MongoDB (Recomendado)**
+Si preferís usar MongoDB como base de datos:
 
-**Para usar MongoDB:**
-1. Crear archivo `.env` en la raíz del proyecto:
-```env
-NODE_ENV=development
-PORT=8080
-DB_NAME=backend1
-PERSISTENCE=mongo
-MONGO_URL=mongodb://localhost:27017/backend1
-```
+1. **Asegúrate de tener MongoDB ejecutándose** en tu sistema
+2. **Configura el sistema** para usar MongoDB:
+   ```bash
+   npm run use:mongo
+   ```
+3. **Carga productos de ejemplo** (opcional):
+   ```bash
+   npm run db:seed
+   ```
+4. **Reinicia el servidor**:
+   ```bash
+   npm stop
+   npm start
+   ```
 
-2. Ejecutar scripts de configuración:
-```bash
-npm run db:setup    # Configura e importa datos a MongoDB
-npm start
-```
-
-**Para usar FileSystem:**
-1. Crear archivo `.env` en la raíz del proyecto:
-```env
-NODE_ENV=development
-PORT=8080
-DB_NAME=backend1
-PERSISTENCE=fs
-MONGO_URL=mongodb://localhost:27017/backend1
-```
-
-2. Iniciar el servidor:
-```bash
-npm start
-```
-
-### Configuración Automática Completa
-```bash
-npm run setup       # Configuración automática completa con datos de ejemplo
-npm start
-```
+####  **Cambio Dinámico de Persistencia**
+También podés cambiar entre FileSystem y MongoDB desde la interfaz web:
+1. Visita http://localhost:8080
+2. Haz clic en **"Cambiar a MongoDB"** o **"Cambiar a File System"**
+3. Reinicia el servidor cuando se te indique
 
 ### ¿Cuál opción elegir?
 
-| Aspecto | Opción 1 (Automática) | Opción 2 (Manual) |
-|---------|----------------------|-------------------|
-| **Facilidad** | ✅ Muy fácil - un solo comando | ⚙️ Requiere crear archivos manualmente |
-| **Flexibilidad** | ✅ Cambio dinámico desde la interfaz | ⚙️ Control total desde el inicio |
-| **Principiantes** | ✅ Ideal para empezar rápido | ❌ Requiere conocimiento de configuración |
+| Aspecto | FileSystem | MongoDB |
+|---------|------------|---------|
+| **Facilidad** | ✅ Funciona inmediatamente | ⚙️ Requiere instalar MongoDB |
+| **Persistencia** | 📁 Archivos JSON locales | 🗄️ Base de datos MongoDB |
+| **Rendimiento** | ⚡ Rápido para pocos datos | 🚀 Mejor para gran volumen |
+| **Principiantes** | ✅ Ideal para empezar | ⚙️ Requiere conocimiento de MongoDB |
 | **Desarrollo** | ✅ Perfecto para pruebas y demos | ✅ Mejor para desarrollo específico |
 | **Configuración .env** | ✅ Se crea automáticamente | ⚙️ Debes crearlo manualmente |
 
@@ -120,45 +102,47 @@ npm start  # Iniciar servidor
 **URL Principal**: http://localhost:8080
 
 ### Interfaz de Administración
-La página principal incluye un panel de "Gestión de Datos" con tres funciones principales:
+La página principal incluye un panel de "Gestión de Datos" con las siguientes funciones:
 
-1. **Cargar Productos de Ejemplo**
+1. **Cambio de Persistencia Dinámico**
+   - Botón **"Cambiar a MongoDB"** / **"Cambiar a FileSystem"**
+   - Crea (en caso de no existir), y configura automáticamente el archivo `.env`
+   - Requiere reinicio del servidor para aplicar cambios
+
+2. **Cargar Productos de Ejemplo**
    - Carga productos predefinidos en el sistema actual
    - Funciona tanto en MongoDB como FileSystem
    - Detecta automáticamente la persistencia activa
 
-2. **Migrar Datos**
-   - Migración bidireccional entre MongoDB y FileSystem
+3. **Migrar Datos**
+   - **FS → MongoDB**: Migra datos de FileSystem a MongoDB
+   - **MongoDB → FS**: Migra datos de MongoDB a FileSystem
    - Preserva todos los datos durante la migración
    - Cambio automático de persistencia tras migración exitosa
-
-3. **Configuración**
-   - Información del sistema actual
-   - Estado de persistencia activo
-   - Herramientas de importación/exportación
 
 ### Scripts Disponibles
 
 | Comando | Descripción | Cuándo usar |
 |---------|-------------|-------------|
 | `npm start` | Iniciar servidor | Siempre para ejecutar la aplicación |
-| `npm run setup` | Configuración automática completa | Primera instalación con datos de ejemplo |
-| `npm run db:setup` | Configurar MongoDB con datos | Configuración manual de MongoDB |
+| `npm run use:mongo` | Configurar MongoDB | Cambiar persistencia a MongoDB desde terminal |
+| `npm run db:seed` | Cargar productos de ejemplo | Usar base de datos con datos de prueba |
 | `npm run db:export` | Exportar datos actuales | Crear respaldo de datos |
 | `npm run db:import` | Importar datos desde backup | Restaurar datos desde respaldo |
 
 **Ejemplo de flujo típico:**
 ```bash
-# Opción 1: Inicio rápido
+# Inicio rápido con FileSystem
 npm install
 npm start
-# Usar interfaz web para cambiar a MongoDB si es necesario
 
-# Opción 2: Configuración manual con MongoDB
-npm install
-# Crear archivo .env manualmente
-npm run db:setup
+# Cambiar a MongoDB con datos de ejemplo
+npm run use:mongo
+npm run db:seed
 npm start
+
+# O usar la interfaz web en http://localhost:8080
+# para cambiar persistencia dinámicamente
 ```
 
 ### Vistas Disponibles

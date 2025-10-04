@@ -43,68 +43,7 @@ exports.loadSeedProducts = async (req, res, next) => {
   }
 };
 
-// Endpoint para exportar datos
-exports.exportData = async (req, res, next) => {
-  try {
-    const scriptPath = path.join(__dirname, '../../scripts/export-database.js');
-    
-    exec(`node "${scriptPath}"`, (error, stdout, stderr) => {
-      if (error) {
-        console.error('Error exportando:', error);
-        return res.status(500).json({ 
-          success: false, 
-          error: 'Error al exportar datos',
-          details: error.message 
-        });
-      }
-      
-      if (stderr) {
-        console.warn('Advertencias en exportación:', stderr);
-      }
-      
-      console.log('Exportación exitosa:', stdout);
-      res.json({ 
-        success: true, 
-        message: 'Datos exportados correctamente',
-        output: stdout 
-      });
-    });
-  } catch (error) {
-    console.error('Error en exportData:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error interno del servidor',
-      details: error.message
-    });
-  }
-};
 
-// Endpoint para importar datos
-exports.importData = async (req, res, next) => {
-  try {
-    const scriptPath = path.join(__dirname, '../../scripts/import-database.js');
-    
-    return new Promise((resolve, reject) => {
-      exec(`node "${scriptPath}"`, (error, stdout, stderr) => {
-        if (error) {
-          console.error('Error importando:', error);
-          return res.status(500).json({ 
-            success: false, 
-            error: 'Error al importar datos' 
-          });
-        }
-        
-        res.json({ 
-          success: true, 
-          message: 'Datos importados correctamente',
-          output: stdout 
-        });
-      });
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 // Endpoint para migrar de FS a MongoDB
 exports.migrateToMongo = async (req, res, next) => {
@@ -213,3 +152,4 @@ exports.smartSetup = async (req, res, next) => {
     });
   }
 };
+
