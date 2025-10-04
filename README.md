@@ -2,7 +2,7 @@
 
 Sistema de gestión de **productos** y **carritos** con **MongoDB (Mongoose)** como persistencia principal, vistas con **Handlebars**, y **Socket.IO** para tiempo real. Mantiene contrato de API con **IDs numéricos autoincrementales** mediante **counters**.
 
-> ℹ️ FileSystem está disponible como modo alternativo (opcional) para desarrollo, pero **la entrega se evalúa con MongoDB**.
+> ℹ️ FileSystem está disponible como modo alternativo (opcional) para desarrollo, pero se considera que para **la entrega se evalúa con MongoDB**.
 
 ---
 
