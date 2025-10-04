@@ -31,7 +31,7 @@ Sistema de gestión de productos y carritos con doble persistencia (MongoDB/File
 ### Instalación
 
 ```bash
-git clone [repository-url]
+git clone https://github.com/amalberto/backend1-entregaFinal
 cd backend1-entregaFinal
 npm install
 ```
