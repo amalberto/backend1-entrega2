@@ -1,99 +1,195 @@
-# Backend1 - Entrega Final
+# Backend1 – Entrega Final
 
-## Descripción
-Sistema de gestión de productos y carritos con doble persistencia (MongoDB/FileSystem), Socket.IO para tiempo real, y vistas con Handlebars. Incluye interfaz de administración para gestión de datos.
+Sistema de gestión de **productos** y **carritos** con **MongoDB (Mongoose)** como persistencia principal, vistas con **Handlebars**, y **Socket.IO** para tiempo real. Mantiene contrato de API con **IDs numéricos autoincrementales** mediante **counters**.
 
-## Características Principales
+> ℹ️ FileSystem está disponible como modo alternativo (opcional) para desarrollo, pero **la entrega se evalúa con MongoDB**.
 
-### Funcionalidades Core
-- **Gestión de Productos**: CRUD completo con paginación, filtros y ordenamiento
-- **Gestión de Carritos**: Creación, modificación y eliminación de carritos
-- **Doble Persistencia**: Soporte completo para MongoDB y FileSystem con migración automática
-- **Tiempo Real**: Socket.IO para actualizaciones instantáneas
-- **Interfaz Administrativa**: Panel de control para gestión de datos
+---
 
-### API REST Completa
-- `/api/products` - Gestión de productos con paginación y filtros
-- `/api/carts` - Gestión completa de carritos
-- `/api/admin` - Endpoints administrativos para gestión de datos
+## 🚀 Requisitos previos
 
-### Sistema de Migración
-- **Migración Bidireccional**: MongoDB ↔ FileSystem
-- **Detección Automática**: El sistema detecta la persistencia disponible
-- **Importación/Exportación**: Funciones para respaldo y restauración de datos
+- **Node.js** 16+
+- **MongoDB** String de conexión en `.env`
 
-## Instalación y Configuración
+**Puedes usar:**
 
-### Requisitos Previos
-- **Node.js** v14 o superior
-- **MongoDB** (opcional, pero recomendado - también funciona con FileSystem en caso de no estar instalado Mongo) 
+```bash
+npm run use:mongo
+```
+para crear el .env automátimaticamente
 
-### Instalación
+
+**Si prefieres crearlo manualmente:**
+
+
+Ejemplo `.env`:
+```env
+PERSISTENCE=mongo
+MONGO_URL="mongodb://localhost:27017/backend1"
+PORT=8080
+```
+
+> Si querés usar FileSystem para dev en .env la linea de PERSISTENCE debe quedar como: `PERSISTENCE=fs`.
+
+## ▶️ Inicio rápido (Mongo recomendado)
 
 ```bash
 git clone https://github.com/amalberto/backend1-entregaFinal
 cd backend1-entregaFinal
 npm install
-```
-
-### Configuración - Dos opciones disponibles:
-
-####  **Inicio Rápido**
-La forma más sencilla de empezar:
-
+# crear .env con PERSISTENCE=mongo y MONGO_URL o usar
 ```bash
-npm install
+npm run use:mongo
+```
 npm start
 ```
 
-El sistema iniciará por defecto con **FileSystem** (archivos JSON locales). Visita http://localhost:8080 y tendrás acceso a todas las funcionalidades.
+**URLs:**
+- **App**: http://localhost:8080
+- **Productos (API)**: http://localhost:8080/api/products
+- **Carrito (vista)**: http://localhost:8080/carts/:cid
+- **Productos con tiempo real**: http://localhost:8080/realtime
 
-####  **Configurar MongoDB (Recomendado)**
-Si preferís usar MongoDB como base de datos:
+**Recomendado: usar datos de ejemplo**
+Correr
+```bash
+npm run db:seed
+```
+o usar en la vista de home el botón 'Cargar Productos de Ejemplo'
 
-1. **Asegúrate de tener MongoDB ejecutándose** en tu sistema
-2. **Configura el sistema** para usar MongoDB:
-   ```bash
-   npm run use:mongo
-   ```
-3. **Carga productos de ejemplo** (opcional):
-   ```bash
-   npm run db:seed
-   ```
-4. **Reinicia el servidor**:
-   ```bash
-   npm stop
-   npm start
-   ```
+## 🧱 Modelo de datos (Mongoose)
 
-####  **Cambio Dinámico de Persistencia**
-También podés cambiar entre FileSystem y MongoDB desde la interfaz web:
-1. Visita http://localhost:8080
-2. Haz clic en **"Cambiar a MongoDB"** o **"Cambiar a File System"**
-3. Reinicia el servidor cuando se te indique
+### Products
+- `id`: Number (único, autoincremental con counters)
+- `title`, `description`, `code` (único), `price`, `status` (bool), `stock`, `category`, `thumbnails[]`
 
-### ¿Cuál opción elegir?
+### Carts
+- `id`: Number (único, autoincremental con counters)
+- `products`: [{ product: ObjectId(ref 'Product'), quantity: Number>=1 }]
 
-| Aspecto | FileSystem | MongoDB |
-|---------|------------|---------|
-| **Facilidad** | ✅ Funciona inmediatamente | ⚙️ Requiere instalar MongoDB |
-| **Persistencia** | 📁 Archivos JSON locales | 🗄️ Base de datos MongoDB |
-| **Rendimiento** | ⚡ Rápido para pocos datos | 🚀 Mejor para gran volumen |
-| **Principiantes** | ✅ Ideal para empezar | ⚙️ Requiere conocimiento de MongoDB |
-| **Desarrollo** | ✅ Perfecto para pruebas y demos | ✅ Mejor para desarrollo específico |
-| **Configuración .env** | ✅ Se crea automáticamente | ⚙️ Debes crearlo manualmente |
+### Counters
+- `{ _id: 'products'|'carts', seq: Number }` – para generar id secuenciales (no se reutilizan).
 
-**💡 Recomendación:** Usa la **Opción 1** para empezar rápidamente y explorar el sistema. Cambia a la **Opción 2** cuando necesites un control más específico de la configuración.
+## ✅ Reglas de validación
 
-### 📋 Notas Importantes
+- `code` único.
+- `price` y `stock` numéricos.
+- En `PUT /api/products/:pid` no se puede modificar `id`.
+- En `PUT /api/carts/:cid/products/:pid` quantity >= 1.
+- `id` de productos y carritos no se reutiliza: el contador siempre incrementa.
 
-- **Archivo .env:** Si no existe, el sistema funciona con FileSystem por defecto
-- **Cambio dinámico:** Puedes alternar entre MongoDB y FileSystem desde la interfaz web sin editar archivos
-- **Datos independientes:** Cada sistema de persistencia mantiene sus propios datos
-- **Migración:** Usa el botón "Migrar Datos" para transferir información entre sistemas
-- **Reinicio requerido:** Después de cambiar la persistencia, reinicia el servidor para aplicar todos los cambios
+## 📡 API
 
-## Uso del Sistema
+### Productos – /api/products
+
+#### GET /api/products
+
+**Query params:**
+- `limit` (Number, default 10)
+- `page` (Number, default 1)
+- `sort` (asc|desc) por price
+- `query` (filtro). Acepta:
+  - `category:<nombre>` | `status:true|false` | o un valor simple (se interpreta como category).
+
+**Respuesta cuando hay query params:**
+
+```json
+{
+  "status": "success",
+  "payload": [ /* productos */ ],
+  "totalPages": 5,
+  "prevPage": 1,
+  "nextPage": 3,
+  "page": 2,
+  "hasPrevPage": true,
+  "hasNextPage": true,
+  "prevLink": "http://localhost:8080/api/products?limit=10&page=1",
+  "nextLink": "http://localhost:8080/api/products?limit=10&page=3"
+}
+```
+
+**Ejemplos:**
+- `/api/products?limit=5&page=2&sort=asc`
+- `/api/products?query=category:electronics&sort=desc`
+- `/api/products?query=status:true&page=3&limit=4`
+
+#### GET /api/products/:pid
+Detalle por id numérico.
+
+#### POST /api/products
+
+**Body:**
+```json
+{
+  "title": "Mouse",
+  "description": "Optical",
+  "code": "SKU-100",
+  "price": 15.5,
+  "status": true,
+  "stock": 30,
+  "category": "electronics",
+  "thumbnails": []
+}
+```
+> `id` se autogenera.
+
+#### PUT /api/products/:pid
+Actualiza campos (no `id`).
+
+#### DELETE /api/products/:pid
+Elimina producto.
+
+### Carritos – /api/carts
+
+#### POST /api/carts
+Crea carrito:
+```json
+{ "id": 1, "products": [] }
+```
+
+#### GET /api/carts/:cid
+Devuelve solo los productos del carrito `cid` poblados (populate del modelo Product).
+
+#### POST /api/carts/:cid/products/:pid
+Agrega producto `pid` al carrito `cid` (si existe, incrementa quantity).
+
+### Nuevos (obligatorios)
+
+#### DELETE /api/carts/:cid/products/:pid
+Elimina ese producto del carrito.
+
+#### PUT /api/carts/:cid
+Reemplaza todo el arreglo products con:
+```json
+[
+  { "product": 12, "quantity": 3 },
+  { "product": 5, "quantity": 1 }
+]
+```
+
+#### PUT /api/carts/:cid/products/:pid
+Setea quantity por body:
+```json
+{ "quantity": 7 }
+```
+
+#### DELETE /api/carts/:cid
+Vacía el carrito.
+
+## 🖼️ Vistas (Handlebars)
+
+- `/products` – listado con paginación, filtros (categoría/estado) y orden (precio asc/desc).
+- `/products/:pid` – detalle con botón "Agregar al carrito".
+- `/carts/:cid` – muestra solo los productos de ese carrito (populate).
+- `/realtime` – (opcional) lista dinámica con Socket.IO y formulario de alta/baja.
+
+## ⚡ Tiempo real (Socket.IO)
+
+Al crear/editar/eliminar un producto por HTTP o WS, el servidor emite `products:updated`.
+
+El cliente (vista realtime) recarga respetando filtros y paginación activos.
+
+## 🎛️ Interfaz de Administración
 
 ### Acceso a la Aplicación
 ```bash
@@ -101,7 +197,7 @@ npm start  # Iniciar servidor
 ```
 **URL Principal**: http://localhost:8080
 
-### Interfaz de Administración
+### Panel de Gestión de Datos
 La página principal incluye un panel de "Gestión de Datos" con las siguientes funciones:
 
 1. **Cambio de Persistencia Dinámico**
@@ -120,56 +216,23 @@ La página principal incluye un panel de "Gestión de Datos" con las siguientes 
    - Preserva todos los datos durante la migración
    - Cambio automático de persistencia tras migración exitosa
 
-### Scripts Disponibles
+### Cambio Dinámico de Persistencia
+También podés cambiar entre FileSystem y MongoDB directamente desde la interfaz web:
+1. Visita http://localhost:8080
+2. Haz clic en **"Cambiar a MongoDB"** o **"Cambiar a File System"**
+3. Reinicia el servidor cuando se te indique
 
-| Comando | Descripción | Cuándo usar |
-|---------|-------------|-------------|
-| `npm start` | Iniciar servidor | Siempre para ejecutar la aplicación |
-| `npm run use:mongo` | Configurar MongoDB | Cambiar persistencia a MongoDB desde terminal |
-| `npm run db:seed` | Cargar productos de ejemplo | Usar base de datos con datos de prueba |
-| `npm run db:export` | Exportar datos actuales | Crear respaldo de datos |
-| `npm run db:import` | Importar datos desde backup | Restaurar datos desde respaldo |
+## 🧰 Scripts útiles
 
-**Ejemplo de flujo típico:**
-```bash
-# Inicio rápido con FileSystem
-npm install
-npm start
+| Comando | Descripción |
+|---------|-------------|
+| `npm start` | Inicia el servidor |
+| `npm run db:seed` | Carga productos de ejemplo |
+| `npm run use:mongo` | (Opcional) Genera .env con PERSISTENCE=mongo |
+| `npm run db:export` | (Opcional) Exporta datos actuales |
+| `npm run db:import` | (Opcional) Importa datos desde backup |
 
-# Cambiar a MongoDB con datos de ejemplo
-npm run use:mongo
-npm run db:seed
-npm start
+> **Evaluación:** usar `PERSISTENCE=mongo`.
 
-# O usar la interfaz web en http://localhost:8080
-# para cambiar persistencia dinámicamente
-```
 
-### Vistas Disponibles
-- **/** - Página principal con gestión administrativa
-- **/products** - Listado de productos con paginación
-- **/carts** - Gestión de carritos
-- **/realtime** - Vista en tiempo real con Socket.IO
-
-### API Endpoints
-
-#### Productos
-- `GET /api/products` - Listar productos (paginación, filtros, ordenamiento)
-- `GET /api/products/:pid` - Obtener producto específico
-- `POST /api/products` - Crear nuevo producto
-- `PUT /api/products/:pid` - Actualizar producto
-- `DELETE /api/products/:pid` - Eliminar producto
-
-#### Carritos
-- `GET /api/carts` - Listar carritos
-- `POST /api/carts` - Crear nuevo carrito
-- `GET /api/carts/:cid` - Obtener carrito específico
-- `POST /api/carts/:cid/products/:pid` - Agregar producto al carrito
-- `PUT /api/carts/:cid/products/:pid` - Actualizar cantidad en carrito
-- `DELETE /api/carts/:cid/products/:pid` - Eliminar producto del carrito
-- `DELETE /api/carts/:cid` - Vaciar carrito
-
-#### Administración
-- `POST /api/admin/seed-products` - Cargar productos de ejemplo
-- `POST /api/admin/migrate-data` - Migrar entre persistencias
-- `GET /api/admin/config` - Información de configuración
+> ⚠️ **Importante:** Si MongoDB no está instalado, el sistema automáticamente utilizará FileSystem como fallback, pero **MongoDB siempre estará disponible creando el .env según lo descripto más arriba o utilizando el comando npm run use:mongo.**
