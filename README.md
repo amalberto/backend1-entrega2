@@ -38,9 +38,7 @@ git clone https://github.com/amalberto/backend1-entregaFinal
 cd backend1-entregaFinal
 npm install
 # crear .env con PERSISTENCE=mongo y MONGO_URL o usar
-```bash
 npm run use:mongo
-```
 npm start
 ```
 
