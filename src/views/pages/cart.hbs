@@ -1,0 +1,211 @@
+{{> header}}
+
+<div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+  
+  <nav style="margin-bottom: 20px;">
+    <a href="/products" style="color: #007bff; text-decoration: none;">← Ver más productos</a>
+  </nav>
+  
+  <h1>{{title}}</h1>
+  
+  {{#if cart.products.length}}
+  
+  <!-- PRODUCTOS EN EL CARRITO -->
+  <div style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 20px;">
+    
+    {{#each cart.products}}
+    <div style="display: flex; align-items: center; padding: 20px; border-bottom: 1px solid #eee; {{#unless @last}}{{else}}border-bottom: none;{{/unless}}">
+      
+      <!-- IMAGEN DEL PRODUCTO -->
+      <div style="flex: 0 0 80px; margin-right: 15px;">
+        {{#if product.thumbnails.length}}
+        <img src="{{product.thumbnails.[0]}}" alt="{{product.title}}" 
+             style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;"
+             onerror="this.src='https://via.placeholder.com/80x80?text=?'">
+        {{else}}
+        <div style="width: 80px; height: 80px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 12px;">
+          Sin imagen
+        </div>
+        {{/if}}
+      </div>
+      
+      <!-- DETALLES DEL PRODUCTO -->
+      <div style="flex: 1;">
+        <h3 style="margin: 0 0 5px 0; font-size: 18px;">
+          <a href="/products/{{product.id}}" style="color: #333; text-decoration: none;">
+            {{product.title}}
+          </a>
+        </h3>
+        
+        <p style="color: #666; margin: 5px 0; font-size: 14px;">{{product.description}}</p>
+        
+        <div style="margin: 10px 0; font-size: 12px; color: #888;">
+          <span>Código: {{product.code}}</span> • 
+          <span>Categoría: {{product.category}}</span>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 15px; margin-top: 10px;">
+          <div>
+            <strong style="color: #28a745; font-size: 16px;">${{product.price}}</strong> c/u
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span>Cantidad:</span>
+            <div style="display: flex; align-items: center; border: 1px solid #ddd; border-radius: 4px;">
+              <button onclick="updateQuantity({{../cart.id}}, {{product.id}}, {{quantity}}, -1)" 
+                      style="background: #f8f9fa; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px 0 0 4px;">
+                -
+              </button>
+              <span style="padding: 5px 15px; background: white; font-weight: bold;">{{quantity}}</span>
+              <button onclick="updateQuantity({{../cart.id}}, {{product.id}}, {{quantity}}, 1)" 
+                      style="background: #f8f9fa; border: none; padding: 5px 10px; cursor: pointer; border-radius: 0 4px 4px 0;">
+                +
+              </button>
+            </div>
+          </div>
+          
+          <div style="margin-left: auto;">
+            <strong style="font-size: 18px; color: #333;">
+              ${{multiply product.price quantity}}
+            </strong>
+          </div>
+          
+          <button onclick="removeFromCart({{../cart.id}}, {{product.id}})" 
+                  style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+            Eliminar
+          </button>
+        </div>
+      </div>
+      
+    </div>
+    {{/each}}
+    
+  </div>
+  
+  <!-- RESUMEN -->
+  <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <span style="font-size: 18px;">Subtotal:</span>
+      <span style="font-size: 24px; font-weight: bold; color: #28a745;">${{total}}</span>
+    </div>
+    
+    <div style="display: flex; gap: 10px;">
+      <button onclick="clearCart({{cart.id}})" 
+              style="flex: 1; background: #6c757d; color: white; border: none; padding: 15px; border-radius: 4px; cursor: pointer; font-size: 16px;">
+        Vaciar carrito
+      </button>
+      
+      <button onclick="checkout()" 
+              style="flex: 2; background: #28a745; color: white; border: none; padding: 15px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold;">
+        Proceder al pago
+      </button>
+    </div>
+  </div>
+  
+  {{else}}
+  
+  <!-- CARRITO VACÍO -->
+  <div style="text-align: center; padding: 60px 20px; color: #666;">
+    <div style="font-size: 64px; margin-bottom: 20px;">[CART]</div>
+    <h2 style="margin-bottom: 10px;">Tu carrito está vacío</h2>
+    <p style="margin-bottom: 30px;">Agrega algunos productos para comenzar</p>
+    <a href="/products" 
+       style="background: #007bff; color: white; text-decoration: none; padding: 15px 30px; border-radius: 4px; font-size: 16px;">
+      Ver productos
+    </a>
+  </div>
+  
+  {{/if}}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  function updateQuantity(cartId, productId, currentQuantity, change) {
+    const newQuantity = Math.max(1, currentQuantity + change);
+    
+    fetch(`/api/carts/${cartId}/products/${productId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quantity: newQuantity })
+    })
+    .then(response => response.json())
+    .then(result => {
+      if (result.error) throw new Error(result.error);
+      location.reload();
+    })
+    .catch(error => {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo actualizar la cantidad'
+      });
+    });
+  }
+  
+  function removeFromCart(cartId, productId) {
+    Swal.fire({
+      title: '¿Estás seguro?',
+      text: 'Se eliminará este producto del carrito',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        fetch(`/api/carts/${cartId}/products/${productId}`, {
+          method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(result => {
+          if (result.error) throw new Error(result.error);
+          location.reload();
+        })
+        .catch(error => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo eliminar el producto'
+          });
+        });
+      }
+    });
+  }
+  
+  function clearCart(cartId) {
+    Swal.fire({
+      title: '¿Vaciar carrito?',
+      text: 'Se eliminarán todos los productos del carrito',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, vaciar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        fetch(`/api/carts/${cartId}`, {
+          method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(result => {
+          if (result.error) throw new Error(result.error);
+          location.reload();
+        })
+        .catch(error => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo vaciar el carrito'
+          });
+        });
+      }
+    });
+  }
+  
+  function checkout() {
+    Swal.fire({
+      icon: 'info',
+      title: 'No disponible',
+      text: 'Esta función todavía no está disponible en esta versión demo'
+    });
+  }
+</script>

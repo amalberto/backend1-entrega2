@@ -1,2 +1,35 @@
-<h1>404</h1>
-<p>La página solicitada no existe.</p>
+{{> header}}
+
+<div style="text-align: center; padding: 100px 20px; max-width: 600px; margin: 0 auto;">
+  
+  <div style="font-size: 120px; margin-bottom: 20px; color: #dc3545;">404</div>
+  
+  <h1 style="font-size: 36px; margin-bottom: 15px; color: #333;">Página no encontrada</h1>
+  
+  <p style="font-size: 18px; color: #666; margin-bottom: 40px; line-height: 1.5;">
+    Lo sentimos, la página que estás buscando no existe o ha sido movida.
+  </p>
+  
+  <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+    <a href="/" 
+       style="background: #007bff; color: white; text-decoration: none; padding: 15px 30px; border-radius: 4px; font-size: 16px; display: inline-block;">
+      Ir al inicio
+    </a>
+    
+    <a href="/products" 
+       style="background: #28a745; color: white; text-decoration: none; padding: 15px 30px; border-radius: 4px; font-size: 16px; display: inline-block;">
+      Ver productos
+    </a>
+    
+    <button onclick="history.back()" 
+            style="background: #6c757d; color: white; border: none; padding: 15px 30px; border-radius: 4px; cursor: pointer; font-size: 16px;">
+      Volver atrás
+    </button>
+  </div>
+  
+  <div style="margin-top: 50px; padding: 20px; background: #f8f9fa; border-radius: 8px; color: #666; font-size: 14px;">
+    <p><strong>¿Necesitas ayuda?</strong></p>
+    <p>Si crees que esto es un error, por favor contacta al administrador del sistema.</p>
+  </div>
+  
+</div>

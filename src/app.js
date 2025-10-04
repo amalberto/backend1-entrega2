@@ -23,6 +23,14 @@ app.engine('hbs', engine({
   defaultLayout: 'main',
   layoutsDir: path.join(paths.views, 'layouts'),
   partialsDir: path.join(paths.views, 'partials'),
+  helpers: {
+    eq: (a, b) => a === b,
+    gt: (a, b) => a > b,
+    and: (a, b) => a && b,
+    or: (a, b) => a || b,
+    not: (a) => !a,
+    multiply: (a, b) => a * b
+  }
 }));
 app.set('view engine', 'hbs');
 app.set('views', paths.views);

@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { httpServer } = require('./src/config/server');
 
 const PORT = process.env.PORT || 8080;

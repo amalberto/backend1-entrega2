@@ -1,15 +1,23 @@
 {
-  "name": "backend1-entrega2-Aguirre-Alberto",
+  "name": "backend1-entrega-final-Aguirre-Alberto",
   "version": "1.0.0",
   "private": true,
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "stop": "taskkill /F /IM node.exe 2>nul || pkill -f node || true",
+    "db:export": "node scripts/export-database.js",
+    "db:import": "node scripts/import-database.js",
+    "db:seed": "node scripts/seed-products.js",
+    "db:setup": "node scripts/smart-setup.js",
+    "setup": "npm install && npm run db:setup"
   },
   "dependencies": {
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^4.19.2",
     "express-handlebars": "^7.1.2",
+    "mongoose": "^8.19.0",
     "socket.io": "^4.7.5"
   }
 }

@@ -65,3 +65,66 @@ exports.remove = async (id) => {
     return Number(id);
   } catch (err) { throw err; }
 };
+
+exports.removeAll = async () => {
+  try {
+    const data = await readFile();
+    const count = data.length;
+    await writeFile([]);
+    return count;
+  } catch (err) { throw err; }
+};
+
+exports.paginate = async ({ page = 1, limit = 10, sort, filter = {} }) => {
+  try {
+    const data = await readFile();
+    
+    // Aplicar filtros
+    let filtered = data;
+    if (filter.category) {
+      filtered = filtered.filter(p => p.category && p.category.toLowerCase().includes(filter.category.toLowerCase()));
+    }
+    if (typeof filter.status !== 'undefined') {
+      filtered = filtered.filter(p => p.status === filter.status);
+    }
+    
+    // Aplicar ordenamiento
+    if (sort === 'asc') {
+      filtered = filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+    } else if (sort === 'desc') {
+      filtered = filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
+    }
+    
+    // Aplicar paginación
+    const _page = Math.max(1, Number(page) || 1);
+    const _limit = Math.max(1, Number(limit) || 10);
+    const skip = (_page - 1) * _limit;
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / _limit));
+    const items = filtered.slice(skip, skip + _limit);
+    
+    return {
+      payload: items,
+      total,
+      limit: _limit,
+      page: _page,
+      totalPages,
+      prevPage: _page > 1 ? _page - 1 : null,
+      nextPage: _page < totalPages ? _page + 1 : null,
+      hasPrevPage: _page > 1,
+      hasNextPage: _page < totalPages
+    };
+  } catch (err) { 
+    throw err; 
+  }
+};
+
+exports.getUniqueCategories = async () => {
+  try {
+    const data = await readFile();
+    const categories = [...new Set(data.map(p => p.category).filter(cat => cat && cat.trim() !== ''))];
+    return categories.sort();
+  } catch (err) { 
+    throw err; 
+  }
+};

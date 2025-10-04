@@ -1,3 +1,110 @@
-<footer style="padding:1rem; border-top:1px solid #ddd; margin-top:2rem;">
-  <small>FS + Handlebars + Socket</small>
+<footer class="main-footer">
+  <div class="footer-container">
+    <div class="footer-content">
+      <div class="footer-info">
+        <p class="footer-title">Backend E-commerce y demo de frontend de productos</p>
+      </div>
+      <div class="footer-tech">
+        <span class="tech-badge">Node.js</span>
+        <span class="tech-badge">Express</span>
+        <span class="tech-badge">MongoDB</span>
+        <span class="tech-badge">Socket.IO</span>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <small class="footer-copyright">
+        Sistema de gestión de productos y carritos, con demo de frontend de productos.
+      </small>
+    </div>
+  </div>
 </footer>
+
+<style>
+.main-footer {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  color: white;
+  margin-top: 60px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px 20px;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.footer-info {
+  flex: 1;
+}
+
+.footer-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 5px 0;
+  color: #ecf0f1;
+}
+
+.footer-subtitle {
+  font-size: 0.9rem;
+  margin: 0;
+  color: #bdc3c7;
+  font-weight: 400;
+}
+
+.footer-tech {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tech-badge {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ecf0f1;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.tech-badge:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.footer-bottom {
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.footer-copyright {
+  color: #95a5a6;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+  
+  .footer-tech {
+    justify-content: center;
+  }
+  
+  .footer-container {
+    padding: 30px 20px 15px;
+  }
+}
+</style>

@@ -1,0 +1,328 @@
+{{> header}}
+
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+  
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+    <h1>Carritos de compra</h1>
+    <div style="display: flex; gap: 10px;">
+      <button onclick="deleteAllCarts()" 
+              style="background: #dc3545; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 16px;">
+        Eliminar todos los carritos
+      </button>
+      <button onclick="createNewCart()" 
+              style="background: #28a745; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 16px;">
+        Crear nuevo carrito
+      </button>
+    </div>
+  </div>
+  
+  {{#if carts.length}}
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+    
+    {{#each carts}}
+    <div style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px;">
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0; color: #333;">Carrito #{{id}}</h3>
+        <span style="background: {{#if products.length}}#28a745{{else}}#6c757d{{/if}}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">
+          {{products.length}} {{#if (eq products.length 1)}}producto{{else}}productos{{/if}}
+        </span>
+      </div>
+      
+      {{#if products.length}}
+      
+      <div style="margin-bottom: 15px;">
+        <div style="font-size: 14px; color: #666; margin-bottom: 8px;">Productos en el carrito:</div>
+        {{#each products}}
+        <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #eee;">
+          <span style="font-size: 13px;">ID: {{product}}</span>
+          <span style="font-size: 13px; font-weight: bold;">×{{quantity}}</span>
+        </div>
+        {{/each}}
+      </div>
+      
+      <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+        <button onclick="selectCart('{{id}}')" 
+                style="flex: 1; background: #17a2b8; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+          Seleccionar carrito
+        </button>
+        <a href="/carts/{{id}}" 
+           style="flex: 1; background: #007bff; color: white; text-decoration: none; padding: 10px; border-radius: 4px; text-align: center; font-size: 14px;">
+          Ver detalle
+        </a>
+      </div>
+      
+      <div style="display: flex; gap: 8px;">
+        <button onclick="selectCartAndGoToProducts('{{id}}')" 
+                style="flex: 1; background: #28a745; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+          Agregar productos
+        </button>
+        <button onclick="deleteCart({{id}})" 
+                style="background: #dc3545; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+          Eliminar
+        </button>
+      </div>
+      
+      {{else}}
+      
+      <div style="text-align: center; padding: 20px; color: #666;">
+        <div style="font-size: 32px; margin-bottom: 10px;">[CART]</div>
+        <div style="font-size: 14px;">Carrito vacío</div>
+      </div>
+      
+      <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+        <button onclick="selectCart('{{id}}')" 
+                style="flex: 1; background: #17a2b8; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+          Seleccionar carrito
+        </button>
+        <button onclick="selectCartAndGoToProducts('{{id}}')" 
+                style="flex: 1; background: #28a745; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+          Agregar productos
+        </button>
+      </div>
+      
+      <div style="display: flex; gap: 8px;">
+        <button onclick="deleteCart({{id}})" 
+                style="flex: 1; background: #dc3545; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+          Eliminar
+        </button>
+      </div>
+      
+      {{/if}}
+      
+    </div>
+    {{/each}}
+    
+  </div>
+  
+  {{else}}
+  
+  <div style="text-align: center; padding: 60px 20px; color: #666;">
+    <div style="font-size: 64px; margin-bottom: 20px;">[CART]</div>
+    <h2 style="margin-bottom: 10px;">No hay carritos creados</h2>
+    <p style="margin-bottom: 30px;">Podés gestionar la creación de carritos desde aquí o desde la barra superior con el botón 'Gestionar Carrito'</p>
+    <button onclick="createNewCart()" 
+            style="background: #007bff; color: white; border: none; padding: 15px 30px; border-radius: 4px; cursor: pointer; font-size: 16px;">
+      Crear carrito
+    </button>
+  </div>
+  
+  {{/if}}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  // Funciones auxiliares para la página de carritos
+  async function createNewCartForPage() {
+    try {
+      const res = await fetch('/api/carts', { method: 'POST' });
+      if (!res.ok) throw new Error('Error creating cart');
+      
+      const cart = await res.json();
+      const cartId = cart.payload?.id || cart.payload?._id || cart.id || cart._id;
+      
+      // Establecer automáticamente como carrito activo
+      await setActiveCart(cartId);
+      
+      return { success: true, cartId };
+    } catch (error) {
+      console.error('Error creating cart:', error);
+      return { success: false, error };
+    }
+  }
+  
+  async function deleteCartById(cartId) {
+    try {
+      const res = await fetch(`/api/carts/${cartId}/delete`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Error deleting cart');
+      
+      const result = await res.json();
+      
+      // Si eliminamos el carrito activo, limpiar selección
+      if (getActiveCart() == cartId) {
+        clearActiveCart();
+      }
+      
+      return { success: true, result };
+    } catch (error) {
+      console.error('Error deleting cart:', error);
+      return { success: false, error };
+    }
+  }
+  
+  async function deleteAllCartsFromPage(resetCounter) {
+    try {
+      const res = await fetch('/api/carts/__delete-all__', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resetCounter })
+      });
+      
+      if (!res.ok) throw new Error('Error deleting all carts');
+      
+      const result = await res.json();
+      
+      // Limpiar carrito activo ya que se eliminaron todos
+      clearActiveCart();
+      
+      return { success: true, result };
+    } catch (error) {
+      console.error('Error deleting all carts:', error);
+      return { success: false, error };
+    }
+  }
+
+  async function createNewCart() {
+    const result = await createNewCartForPage();
+    
+    if (result.success) {
+      Swal.fire({
+        icon: 'success',
+        title: '¡Carrito creado!',
+        text: `Nuevo carrito #${result.cartId} creado y establecido como activo`,
+        showCancelButton: true,
+        confirmButtonText: 'Ver carrito',
+        cancelButtonText: 'Quedarse aquí',
+        timer: 4000,
+        timerProgressBar: true
+      }).then((response) => {
+        if (response.isConfirmed) {
+          window.location.href = `/carts/${result.cartId}`;
+        } else {
+          location.reload();
+        }
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo crear el carrito'
+      });
+    }
+  }
+  
+  async function deleteCart(cartId) {
+    const confirmation = await Swal.fire({
+      title: '¿Eliminar carrito?',
+      text: `Se eliminará permanentemente el carrito #${cartId}`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+    
+    if (confirmation.isConfirmed) {
+      const result = await deleteCartById(cartId);
+      
+      if (result.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Carrito eliminado',
+          text: result.result.message || `Carrito #${cartId} eliminado exitosamente`
+        }).then(() => location.reload());
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo eliminar el carrito'
+        });
+      }
+    }
+  }
+  
+  async function deleteAllCarts() {
+    const { value: formValues } = await Swal.fire({
+      title: '¿Eliminar TODOS los carritos?',
+      html: `
+        <div style="text-align: left; margin: 20px 0;">
+          <p style="color: #dc3545; font-weight: bold;">⚠️ Esta acción eliminará TODOS los carritos permanentemente.</p>
+          <hr style="margin: 15px 0;">
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="resetCounter" style="transform: scale(1.2);">
+            <span>Reiniciar contador de carritos (el próximo carrito será #1)</span>
+          </label>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar TODOS',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545',
+      preConfirm: () => {
+        return {
+          resetCounter: document.getElementById('resetCounter').checked
+        };
+      }
+    });
+
+    if (formValues) {
+      const result = await deleteAllCartsFromPage(formValues.resetCounter);
+      
+      if (result.success) {
+        let message = result.result.message;
+        if (formValues.resetCounter) {
+          message += '\n\nEl contador de carritos ha sido reiniciado.';
+        }
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Carritos eliminados',
+          text: message
+        }).then(() => location.reload());
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudieron eliminar los carritos'
+        });
+      }
+    }
+  }
+  
+  // Función para seleccionar un carrito como activo
+  function selectCart(cartId) {
+    const ACTIVE_CART_KEY = 'activeCartId';
+    localStorage.setItem(ACTIVE_CART_KEY, cartId);
+    
+    // Actualizar el badge del navbar si existe la función
+    if (typeof updateCartBadge === 'function') {
+      updateCartBadge();
+    }
+    
+    Swal.fire({
+      icon: 'success',
+      title: '¡Carrito seleccionado!',
+      text: `Carrito #${cartId} ahora es tu carrito activo`,
+      timer: 2000,
+      showConfirmButton: false,
+      toast: true,
+      position: 'top-end'
+    });
+  }
+  
+  // Función para seleccionar carrito y navegar a productos
+  function selectCartAndGoToProducts(cartId) {
+    const ACTIVE_CART_KEY = 'activeCartId';
+    localStorage.setItem(ACTIVE_CART_KEY, cartId);
+    
+    // Actualizar el badge del navbar si existe la función
+    if (typeof updateCartBadge === 'function') {
+      updateCartBadge();
+    }
+    
+    // Mostrar notificación y luego navegar
+    Swal.fire({
+      icon: 'success',
+      title: '¡Carrito seleccionado!',
+      text: `Carrito #${cartId} seleccionado. Redirigiendo a productos...`,
+      timer: 1500,
+      showConfirmButton: false,
+      toast: true,
+      position: 'top-end'
+    }).then(() => {
+      window.location.href = '/products';
+    });
+  }
+</script>

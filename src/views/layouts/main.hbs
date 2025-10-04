@@ -12,6 +12,933 @@
     {{{body}}}
   </main>
   {{> footer}}
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/main.js"></script>
+       } catch (error) {
+        return [];
+      }
+    }<!-- Sistema de gestión de carritos -->
+  <script>
+    const ACTIVE_CART_KEY = 'activeCartId';
+
+    async function ensureActiveCart() {
+      let cid = localStorage.getItem(ACTIVE_CART_KEY);
+      
+      if (cid) {
+        try {
+          const res = await fetch(`/api/carts/${cid}`);
+          if (res.ok) {
+            return cid;
+          } else {
+            localStorage.removeItem(ACTIVE_CART_KEY);
+            cid = null;
+          }
+        } catch (error) {
+          localStorage.removeItem(ACTIVE_CART_KEY);
+          cid = null;
+        }
+      }
+      
+      if (!cid) {
+        try {
+          const res = await fetch('/api/carts', { method: 'POST' });
+          if (!res.ok) { 
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'No se pudo crear el carrito',
+              confirmButtonColor: '#dc3545'
+            });
+            return null; 
+          }
+          const cart = await res.json();
+          cid = cart.payload?.id || cart.payload?._id || cart.id || cart._id;
+          localStorage.setItem(ACTIVE_CART_KEY, cid);
+          updateCartBadge();
+        } catch (error) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'Error al crear carrito',
+            confirmButtonColor: '#dc3545'
+          });
+          return null;
+        }
+      }
+      return cid;
+    }
+
+    async function setActiveCart(cid) {
+      try {
+        const res = await fetch(`/api/carts/${cid}`);
+        if (res.ok) {
+          localStorage.setItem(ACTIVE_CART_KEY, String(cid));
+          updateCartBadge();
+          return true;
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Carrito no encontrado',
+            text: `El carrito #${cid} no existe`,
+            confirmButtonColor: '#dc3545'
+          });
+          return false;
+        }
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de conexión',
+          text: 'No se pudo verificar el carrito',
+          confirmButtonColor: '#dc3545'
+        });
+        return false;
+      }
+    }
+
+    function clearActiveCart() {
+      localStorage.removeItem(ACTIVE_CART_KEY);
+      updateCartBadge();
+    }
+
+    // Función para sincronizar carritos después del cambio de persistencia
+    window.syncCartsAfterPersistenceChange = async function() {
+      try {
+        // Limpiar todo el localStorage relacionado con carritos
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('cart_') || key === 'activeCartId')) {
+            keysToRemove.push(key);
+          }
+        }
+        
+        // Remover todas las claves relacionadas con carritos
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        // Esperar un momento para que el servidor se estabilice
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Obtener carritos del nuevo sistema de persistencia
+        const response = await fetch('/api/carts');
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Extraer carritos del formato { status: 'success', payload: [...] }
+          const carts = data.payload || data;
+          
+          // Actualizar localStorage con los carritos existentes en el nuevo sistema
+          if (Array.isArray(carts)) {
+            carts.forEach(cart => {
+              const cartId = cart.id || cart._id;
+              if (cartId) {
+                localStorage.setItem(`cart_${cartId}_exists`, 'true');
+              }
+            });
+            
+            return { success: true, cartsFound: carts.length };
+          } else {
+            return { success: false, error: `Formato de respuesta inválido: esperaba array, recibí ${typeof carts}` };
+          }
+        } else {
+          return { success: false, error: `HTTP ${response.status}` };
+        }
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    };
+
+    // Función auxiliar para crear carrito (usada por la página carts.hbs)
+    async function createNewCartForPage() {
+      try {
+        const res = await fetch('/api/carts', { method: 'POST' });
+        if (!res.ok) {
+          throw new Error('Error creating cart');
+        }
+        const result = await res.json();
+        
+        // Establecer automáticamente como carrito activo
+        const cartId = result.payload?.id || result.payload?._id || result.id || result._id;
+        await setActiveCart(cartId);
+        
+        return { success: true, cartId, result };
+      } catch (error) {
+        return { success: false, error };
+      }
+    }
+
+    // Función auxiliar para eliminar carrito individual (usada por la página carts.hbs)
+    async function deleteCartById(cartId) {
+      try {
+        const response = await fetch(`/api/carts/${cartId}/delete`, {
+          method: 'DELETE'
+        });
+        const result = await response.json();
+        
+        if (result.error) throw new Error(result.error);
+        
+        // Si eliminamos el carrito activo, limpiar selección
+        if (getActiveCart() == cartId) {
+          clearActiveCart();
+        }
+        
+        // Limpiar registro de existencia en localStorage
+        localStorage.removeItem(`cart_${cartId}_exists`);
+        
+        return { success: true, result };
+      } catch (error) {
+        return { success: false, error };
+      }
+    }
+
+    // Función auxiliar para vaciar carrito individual (mantiene el carrito pero elimina productos)
+    async function clearCartById(cartId) {
+      try {
+        const response = await fetch(`/api/carts/${cartId}`, {
+          method: 'DELETE'
+        });
+        const result = await response.json();
+        
+        if (result.error) throw new Error(result.error);
+        
+        return { success: true, result };
+      } catch (error) {
+
+        return { success: false, error };
+      }
+    }
+
+    // Función auxiliar para eliminar todos los carritos (usada por la página carts.hbs)
+    async function deleteAllCartsFromPage(resetCounter = false) {
+      try {
+        const response = await fetch('/api/carts/__delete-all__', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resetCounter })
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) throw new Error(result.error);
+        
+        // Limpiar carrito activo ya que se eliminaron todos
+        clearActiveCart();
+        
+        // Limpiar todos los registros de carritos existentes
+        for (let i = 1; i <= 50; i++) {
+          localStorage.removeItem(`cart_${i}_exists`);
+        }
+        
+        return { success: true, result };
+      } catch (error) {
+        return { success: false, error };
+      }
+    }
+
+    // Función para eliminar todos los carritos directamente
+    async function deleteAllCartsDirectly() {
+      try {
+        const { value: formValues } = await Swal.fire({
+          title: '¿Eliminar TODOS los carritos?',
+          html: `
+            <div style="text-align: left; margin: 20px 0;">
+              <p style="color: #dc3545; font-weight: bold;">⚠️ Esta acción eliminará TODOS los carritos permanentemente.</p>
+              <hr style="margin: 15px 0;">
+              <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="resetCounterDirect" style="transform: scale(1.2);">
+                <span>Reiniciar contador de carritos (el próximo carrito será #1)</span>
+              </label>
+            </div>
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, eliminar TODOS',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#dc3545',
+          preConfirm: () => {
+            return {
+              resetCounter: document.getElementById('resetCounterDirect').checked
+            };
+          }
+        });
+
+        if (formValues) {
+          // Hacer la petición directamente
+          const response = await fetch('/api/carts/__delete-all__', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resetCounter: formValues.resetCounter })
+          });
+          
+          const result = await response.json();
+          
+          if (result.error) {
+            throw new Error(result.error);
+          }
+          
+          // Limpiar carrito activo
+          clearActiveCart();
+          
+          let message = result.message || 'Todos los carritos han sido eliminados exitosamente';
+          if (formValues.resetCounter) {
+            message += '\n\nEl contador de carritos ha sido reiniciado.';
+          }
+          
+          await Swal.fire({
+            icon: 'success',
+            title: 'Carritos eliminados',
+            text: message,
+            timer: 3000,
+            showConfirmButton: true
+          });
+          
+          // Si estamos en la página de carritos o inicio, refrescar automáticamente
+          if (window.location.pathname === '/carts' || window.location.pathname === '/') {
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
+          }
+        }
+      } catch (error) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudieron eliminar los carritos',
+          confirmButtonColor: '#dc3545'
+        });
+      }
+    }
+
+    function getActiveCart() {
+      return localStorage.getItem(ACTIVE_CART_KEY);
+    }
+
+    async function manageCart() {
+      try {
+        // Mostrar un pequeño loading mientras verificamos los carritos
+        Swal.fire({
+          title: 'Verificando carritos...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+        
+        // Obtener carritos existentes verificando con el servidor
+        const existingCarts = await getExistingCartsFromStorage();
+        
+        // Cerrar el loading
+        Swal.close();
+        
+        if (existingCarts.length === 0) {
+          // No hay carritos, mostrar opciones básicas
+          return await showBasicCartOptions();
+        }
+        
+        // Hay carritos, mostrar opciones completas
+        return await showFullCartManagement(existingCarts);
+        
+      } catch (error) {
+
+        Swal.close(); // Asegurar que se cierre el loading
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Error al gestionar carritos'
+        });
+      }
+    }
+
+    async function getExistingCartsFromStorage() {
+      try {
+        // Consultar directamente al servidor para obtener todos los carritos
+        const response = await fetch('/api/carts');
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Manejar el formato { status: 'success', payload: [...] }
+          const carts = data.payload || data;
+          
+          if (Array.isArray(carts)) {
+            const existingCarts = carts.map(cart => {
+              const cartId = cart.id || cart._id;
+              // Actualizar localStorage
+              localStorage.setItem(`cart_${cartId}_exists`, 'true');
+              return cartId;
+            });
+            
+            return existingCarts;
+          }
+        }
+        
+        // Fallback al método anterior si la API falla
+        const existingCarts = [];
+        const currentCart = getActiveCart();
+        
+        // Lista de posibles carritos para verificar
+        const cartsToCheck = [];
+        
+        // Si hay un carrito activo, agregarlo a la lista para verificar
+        if (currentCart) {
+          cartsToCheck.push(parseInt(currentCart));
+        }
+        
+        // Buscar más carritos marcados en localStorage
+        for (let i = 1; i <= 50; i++) {
+          const testKey = `cart_${i}_exists`;
+          if (localStorage.getItem(testKey)) {
+            if (!cartsToCheck.includes(i)) {
+              cartsToCheck.push(i);
+            }
+          }
+        }
+        
+        // Verificar cada carrito con el servidor
+        for (const cartId of cartsToCheck) {
+          try {
+            const response = await fetch(`/api/carts/${cartId}`);
+            if (response.ok) {
+              existingCarts.push(cartId);
+              // Mantener el registro en localStorage
+              localStorage.setItem(`cart_${cartId}_exists`, 'true');
+            } else {
+              // El carrito no existe, limpiar localStorage
+              localStorage.removeItem(`cart_${cartId}_exists`);
+              // Si era el carrito activo, limpiarlo también
+              if (getActiveCart() == cartId) {
+                clearActiveCart();
+              }
+            }
+          } catch (error) {
+            // En caso de error, asumir que no existe y limpiar
+            localStorage.removeItem(`cart_${cartId}_exists`);
+            if (getActiveCart() == cartId) {
+              clearActiveCart();
+            }
+          }
+        }
+        
+        return existingCarts.sort((a, b) => a - b);
+        
+      } catch (error) {
+        return [];
+      }
+    }
+
+    async function showBasicCartOptions() {
+      const { value: action } = await Swal.fire({
+        title: 'Gestión de carritos',
+        html: `
+          <div style="text-align: center; margin: 20px 0;">
+            <p style="margin-bottom: 20px; color: #666;">No hay carritos disponibles</p>
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+              <button onclick="selectBasicAction('create')" style="padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                Crear nuevo carrito
+              </button>
+              <button onclick="selectBasicAction('delete-all')" style="padding: 15px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                Eliminar todos los carritos
+              </button>
+            </div>
+          </div>
+        `,
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: 'Cerrar',
+        width: '400px',
+        didOpen: () => {
+          window.selectBasicAction = (action) => {
+            Swal.close();
+            executeAction(action);
+          };
+        }
+      });
+    }
+
+    async function showFullCartManagement(existingCarts) {
+      const currentCart = getActiveCart();
+      let optionsHtml = '<div style="text-align: left; margin: 20px 0;">';
+      optionsHtml += '<p style="margin-bottom: 15px; font-weight: 500;">Carritos disponibles:</p>';
+      optionsHtml += '<div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 6px; margin-bottom: 15px;">';
+      
+      existingCarts.forEach(cartId => {
+        const isActive = currentCart == cartId;
+        optionsHtml += `
+          <div style="display: flex; align-items: center; justify-content: space-between; margin: 8px 0; padding: 10px; border-radius: 6px; ${isActive ? 'background: #e3f2fd; border: 2px solid #2196f3;' : 'background: #f8f9fa; border: 1px solid #ddd;'}">
+            <label style="cursor: pointer; flex: 1; display: flex; align-items: center;">
+              <input type="radio" name="cartOption" value="existing-${cartId}" ${isActive ? 'checked' : ''} style="margin-right: 10px; transform: scale(1.2);">
+              <span style="font-weight: 500;">Carrito #${cartId}</span>
+              ${isActive ? '<span style="margin-left: 8px; color: #2196f3; font-size: 0.8em;">(actual)</span>' : ''}
+            </label>
+            <button type="button" onclick="viewCart(${cartId})" 
+                    style="background: #17a2b8; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7em; cursor: pointer; margin-left: 4px;" title="Ver detalles del carrito">
+              👁️ Ver
+            </button>
+            <button type="button" onclick="clearIndividualCart(${cartId})" 
+                    style="background: #ffc107; color: #212529; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7em; cursor: pointer; margin-left: 4px;" title="Vaciar carrito">
+              🗑️ Vaciar
+            </button>
+            <button type="button" onclick="deleteIndividualCart(${cartId})" 
+                    style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7em; cursor: pointer; margin-left: 4px;" title="Eliminar carrito">
+              ✕ Eliminar
+            </button>
+          </div>
+        `;
+      });
+      
+      optionsHtml += '</div>';
+      
+      // Opciones adicionales
+      optionsHtml += `
+        <div style="margin: 15px 0; padding: 10px; border-radius: 6px; background: #fff3cd; border: 1px solid #ffc107;">
+          <label style="cursor: pointer; display: flex; align-items: center;">
+            <input type="radio" name="cartOption" value="create-new" style="margin-right: 10px; transform: scale(1.2);">
+            <span style="font-weight: 500;">Crear nuevo carrito</span>
+          </label>
+        </div>
+        
+        <div style="margin: 15px 0; padding: 10px; border-radius: 6px; background: #f8d7da; border: 1px solid #dc3545;">
+          <label style="cursor: pointer; display: flex; align-items: center;">
+            <input type="radio" name="cartOption" value="clear-selection" style="margin-right: 10px; transform: scale(1.2);">
+            <span style="font-weight: 500;">Limpiar selección (sin carrito activo)</span>
+          </label>
+        </div>
+        
+        <div style="margin: 20px 0; text-align: center; border-top: 1px solid #ddd; padding-top: 15px;">
+          <button type="button" onclick="manualSyncCarts()" 
+                  style="background: #6f42c1; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
+            🔄 Sincronizar carritos
+          </button>
+          <p style="margin: 8px 0 0 0; font-size: 0.8em; color: #6c757d;">Si no ves todos los carritos, haz clic para sincronizar</p>
+        </div>
+      `;
+      
+      optionsHtml += '</div>';
+
+      const result = await Swal.fire({
+        title: 'Gestión de carritos',
+        html: optionsHtml,
+        width: '600px',
+        showCancelButton: true,
+        showDenyButton: true,
+        confirmButtonText: 'Aplicar selección',
+        denyButtonText: 'Eliminar todos',
+        cancelButtonText: 'Cerrar',
+        confirmButtonColor: '#007bff',
+        denyButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        focusConfirm: false,
+        didOpen: () => {
+          window.clearIndividualCart = async (cartId) => {
+            const confirmation = await Swal.fire({
+              title: '¿Vaciar carrito?',
+              text: `Se eliminarán todos los productos del carrito #${cartId}, pero el carrito se mantendrá`,
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonText: 'Sí, vaciar',
+              cancelButtonText: 'Cancelar',
+              confirmButtonColor: '#ffc107'
+            });
+            
+            if (confirmation.isConfirmed) {
+              const success = await clearCartById(cartId);
+              if (success.success) {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Carrito vaciado',
+                  text: `Carrito #${cartId} vaciado exitosamente`,
+                  timer: 2000,
+                  showConfirmButton: false
+                }).then(() => {
+                  // Si estamos en la página de carritos o inicio, refrescar en lugar de reabrir modal
+                  if (window.location.pathname === '/carts' || window.location.pathname === '/') {
+                    window.location.reload();
+                  } else if (window.location.pathname.startsWith('/carts/')) {
+                    // Si estamos en una página específica de carrito, refrescar para mostrar el carrito vacío
+                    window.location.reload();
+                  } else {
+                    manageCart(); // Reabrir modal actualizado en otras páginas
+                  }
+                });
+              } else {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Error',
+                  text: 'No se pudo vaciar el carrito'
+                });
+              }
+            }
+          };
+          
+          window.viewCart = function(cartId) {
+            // Cerrar el modal actual
+            Swal.close();
+            // Navegar a la página del carrito específico
+            window.location.href = `/carts/${cartId}`;
+          };
+          
+          window.manualSyncCarts = async function() {
+            try {
+              
+              // Mostrar loading
+              Swal.fire({
+                title: 'Sincronizando...',
+                text: 'Consultando carritos del servidor',
+                allowOutsideClick: false,
+                didOpen: () => {
+                  Swal.showLoading();
+                }
+              });
+              
+              // Limpiar localStorage
+              const keysToRemove = [];
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('cart_') || key === 'activeCartId')) {
+                  keysToRemove.push(key);
+                }
+              }
+              keysToRemove.forEach(key => localStorage.removeItem(key));
+              
+              // Consultar carritos
+              const response = await fetch('/api/carts');
+              if (response.ok) {
+                const data = await response.json();
+                
+                // Extraer carritos del formato { status: 'success', payload: [...] }
+                const carts = data.payload || data;
+                
+                if (Array.isArray(carts)) {
+                  carts.forEach(cart => {
+                    const cartId = cart.id || cart._id;
+                    if (cartId) {
+                      localStorage.setItem(`cart_${cartId}_exists`, 'true');
+                    }
+                  });
+                  
+                  await Swal.fire({
+                    icon: 'success',
+                    title: 'Sincronización completada',
+                    text: `${carts.length} carritos encontrados y sincronizados`,
+                    timer: 2000,
+                    showConfirmButton: false
+                  });
+                  
+                  // Reabrir el modal actualizado
+                  setTimeout(() => manageCart(), 500);
+                } else {
+                  throw new Error(`Formato inesperado: esperaba array, recibí ${typeof carts}`);
+                }
+              } else {
+                throw new Error(`Error HTTP: ${response.status}`);
+              }
+            } catch (error) {
+              await Swal.fire({
+                icon: 'error',
+                title: 'Error de sincronización',
+                text: error.message,
+                confirmButtonColor: '#dc3545'
+              });
+            }
+          };
+          
+          window.deleteIndividualCart = async (cartId) => {
+            const confirmation = await Swal.fire({
+              title: '¿Eliminar carrito?',
+              text: `Se eliminará permanentemente el carrito #${cartId} y todos sus productos`,
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonText: 'Sí, eliminar',
+              cancelButtonText: 'Cancelar',
+              confirmButtonColor: '#dc3545'
+            });
+            
+            if (confirmation.isConfirmed) {
+              const success = await deleteCartById(cartId);
+              if (success.success) {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Carrito eliminado',
+                  text: `Carrito #${cartId} eliminado exitosamente`,
+                  timer: 2000,
+                  showConfirmButton: false
+                }).then(() => {
+                  // Si estamos en la página de carritos o inicio, refrescar en lugar de reabrir modal
+                  if (window.location.pathname === '/carts' || window.location.pathname === '/') {
+                    window.location.reload();
+                  } else if (window.location.pathname.startsWith('/carts/')) {
+                    // Si estamos en una página específica de carrito y eliminamos ESE carrito, redirigir a /carts
+                    const currentCartId = window.location.pathname.split('/carts/')[1];
+                    if (currentCartId == cartId) {
+                      // Mostrar mensaje especial y redirigir
+                      Swal.fire({
+                        icon: 'info',
+                        title: 'Carrito eliminado',
+                        text: 'El carrito que estabas viendo ha sido eliminado. Te redirigiremos a la lista de carritos.',
+                        timer: 3000,
+                        showConfirmButton: true
+                      }).then(() => {
+                        window.location.href = '/carts';
+                      });
+                      return; // No continuar con el flujo normal
+                    } else {
+                      // Si eliminamos otro carrito, solo refrescar la página actual
+                      window.location.reload();
+                    }
+                  } else {
+                    manageCart(); // Reabrir modal actualizado en otras páginas
+                  }
+                });
+              } else {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Error',
+                  text: 'No se pudo eliminar el carrito'
+                });
+              }
+            }
+          };
+        },
+        preConfirm: () => {
+          const selected = document.querySelector('input[name="cartOption"]:checked');
+          if (!selected) {
+            Swal.showValidationMessage('Selecciona una opción');
+            return false;
+          }
+          return selected.value;
+        }
+      });
+
+      // Manejar resultados
+      if (result.isDenied) {
+        return await executeAction('delete-all');
+      }
+
+      if (result.isConfirmed && result.value) {
+        if (result.value === 'create-new') {
+          return await executeAction('create');
+        } else if (result.value === 'clear-selection') {
+          return await executeAction('clear');
+        } else if (result.value.startsWith('existing-')) {
+          const cartId = result.value.replace('existing-', '');
+          const success = await setActiveCart(cartId);
+          if (success) {
+            // Marcar este carrito como existente en localStorage
+            localStorage.setItem(`cart_${cartId}_exists`, 'true');
+            Swal.fire({
+              icon: 'success',
+              title: 'Carrito seleccionado',
+              text: `Ahora está usando el carrito #${cartId}`,
+              timer: 2000,
+              showConfirmButton: false,
+              toast: true,
+              position: 'top-end'
+            });
+            
+            // Si estamos en la página de carritos, refrescar automáticamente
+            if (window.location.pathname === '/carts') {
+              setTimeout(() => {
+                window.location.reload();
+              }, 2100); // Esperar a que termine la notificación toast
+            }
+            
+            return cartId;
+          }
+        }
+      }
+      
+      return null;
+    }
+
+    async function executeAction(action) {
+      try {
+        let result = null;
+        
+        switch(action) {
+          case 'create':
+            result = await createNewCartDirect();
+            break;
+          
+          case 'delete-all':
+            result = await deleteAllCartsDirectly();
+            break;
+          
+          case 'clear':
+            clearActiveCart();
+            Swal.fire({
+              icon: 'info',
+              title: 'Selección limpiada',
+              text: 'Ya no hay carrito activo seleccionado',
+              timer: 2000,
+              showConfirmButton: false,
+              toast: true,
+              position: 'top-end'
+            });
+            result = null;
+            break;
+          
+          default:
+            result = null;
+        }
+        
+        // Si estamos en la página de carritos o inicio, refrescar automáticamente
+        if (window.location.pathname === '/carts' || window.location.pathname === '/') {
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500); // Dar tiempo para que se muestren las notificaciones
+        }
+        
+        return result;
+      } catch (error) {
+
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo ejecutar la acción'
+        });
+      }
+    }
+
+    async function createNewCartDirect() {
+      try {
+        const res = await fetch('/api/carts', { method: 'POST' });
+        if (!res.ok) {
+          throw new Error('Error creating cart');
+        }
+        const cart = await res.json();
+        const cid = cart.payload?.id || cart.payload?._id || cart.id || cart._id;
+        localStorage.setItem(ACTIVE_CART_KEY, cid);
+        localStorage.setItem(`cart_${cid}_exists`, 'true'); // Marcar como existente
+        updateCartBadge();
+        
+        Swal.fire({
+          icon: 'success',
+          title: '¡Carrito creado!',
+          text: `Nuevo carrito #${cid} creado y seleccionado`,
+          timer: 2000,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
+        
+        // Si estamos en la página de carritos o inicio, refrescar automáticamente
+        if (window.location.pathname === '/carts' || window.location.pathname === '/') {
+          setTimeout(() => {
+            window.location.reload();
+          }, 2100); // Esperar a que termine la notificación toast
+        }
+        
+        return cid;
+      } catch (error) {
+
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo crear el carrito',
+          confirmButtonColor: '#dc3545'
+        });
+        return null;
+      }
+    }
+
+    async function changeActiveCart() {
+      const { value: cartId } = await Swal.fire({
+        title: 'Cambiar carrito activo',
+        input: 'number',
+        inputLabel: 'Ingrese el ID del carrito:',
+        inputPlaceholder: 'Ej: 1, 2, 3...',
+        inputAttributes: {
+          min: 1,
+          step: 1
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Cambiar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#17a2b8',
+        cancelButtonColor: '#6c757d',
+        inputValidator: (value) => {
+          if (!value || value < 1) {
+            return 'Ingrese un ID de carrito válido';
+          }
+        }
+      });
+
+      if (cartId) {
+        const success = await setActiveCart(cartId);
+        if (success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Carrito cambiado',
+            text: `Ahora está usando el carrito #${cartId}`,
+            timer: 2000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+          });
+        }
+      }
+    }
+
+    async function addToCartSimple(pid, qty = 1) {
+      const cid = await ensureActiveCart();
+      if (!cid) return;
+      
+      try {
+        // Agregar de a 1 según la consigna (repetir qty veces)
+        for (let i = 0; i < qty; i++) {
+          const res = await fetch(`/api/carts/${cid}/product/${pid}`, { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          if (!res.ok) { 
+
+            alert('No se pudo agregar al carrito'); 
+            break; 
+          }
+        }
+        updateCartBadge();
+        
+        // Mostrar confirmación
+        Swal.fire({
+          icon: 'success',
+          title: 'Producto agregado',
+          text: `Se agregaron ${qty} unidades al carrito #${cid}`,
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } catch (error) {
+
+        alert('Error de conexión al agregar producto');
+      }
+    }
+
+    async function updateCartBadge() {
+      const badge = document.getElementById('cart-badge');
+      const cid = getActiveCart();
+      
+      if (badge) {
+        if (cid) {
+          // Verificar que el carrito existe antes de mostrarlo
+          try {
+            const res = await fetch(`/api/carts/${cid}`);
+            if (res.ok) {
+              badge.innerHTML = `Carrito activo: <a href="/carts/${cid}" style="color: #007bff; text-decoration: none;">#${cid}</a>`;
+            } else {
+              // El carrito ya no existe, limpiar
+              localStorage.removeItem(ACTIVE_CART_KEY);
+              badge.innerHTML = 'Sin carrito activo';
+            }
+          } catch (error) {
+
+            badge.innerHTML = `Carrito activo: <a href="/carts/${cid}" style="color: #ffc107; text-decoration: none;">#${cid} (?)</a>`;
+          }
+        } else {
+          badge.innerHTML = 'Sin carrito activo';
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', updateCartBadge);
+  </script>
 </body>
 </html>

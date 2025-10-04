@@ -1,12 +1,1097 @@
 {{> header}}
-<h2>Productos</h2>
-{{#if products.length}}
-  <ul>
-  {{#each products}}
-    <li><strong>{{title}}</strong> — ${{price}} — código: {{code}} — stock: {{stock}}</li>
-  {{/each}}
-  </ul>
-{{else}}
-  <p>No hay productos todavía.</p>
-{{/if}}
-<p><a href="/realtimeproducts">Ver en tiempo real</a></p>
+
+<!-- Dashboard principal del sistema -->
+<div class="dashboard-container">
+  <!-- Encabezado del dashboard -->
+  <div class="dashboard-header">
+    <h1>Dashboard del Sistema</h1>
+    <div class="header-controls">
+      <div class="persistence-badge">
+        <span class="badge-label">Base de datos:</span>
+        <span class="badge-value {{#if (eq stats.persistence 'MONGO')}}mongo{{else}}fs{{/if}}">
+          {{#if (eq stats.persistence 'MONGO')}}
+            MongoDB
+          {{else}}
+            File System
+          {{/if}}
+        </span>
+      </div>
+      <button id="togglePersistence" class="toggle-persistence-btn">
+        {{#if (eq stats.persistence 'MONGO')}}
+          Cambiar a File System
+        {{else}}
+          Cambiar a MongoDB
+        {{/if}}
+      </button>
+    </div>
+  </div>
+
+  <!-- Grid de estadísticas del sistema -->
+  <div class="stats-grid">
+    <!-- Estadísticas de Productos -->
+    <div class="stats-card products-card">
+      <div class="card-header">
+        <h3>Productos</h3>
+      </div>
+      <div class="card-content">
+        <div class="stat-row main-stat">
+          <span class="stat-label">Total de productos:</span>
+          <span class="stat-value total">{{stats.products.total}}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Disponibles:</span>
+          <span class="stat-value available">{{stats.products.available}}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">No disponibles:</span>
+          <span class="stat-value unavailable">{{stats.products.unavailable}}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estadísticas de Carritos -->
+    <div class="stats-card carts-card">
+      <div class="card-header">
+        <h3>Carritos</h3>
+      </div>
+      <div class="card-content">
+        <div class="stat-row main-stat">
+          <span class="stat-label">Total de carritos:</span>
+          <span class="stat-value total">{{stats.carts.total}}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Con productos:</span>
+          <span class="stat-value with-products">{{stats.carts.withProducts}}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Vacíos:</span>
+          <span class="stat-value empty">{{stats.carts.empty}}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Contador actual:</span>
+          <span class="stat-value counter">{{stats.carts.currentCounter}}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enlaces de navegación -->
+  <div class="navigation-links">
+    <div class="link-group">
+      <h3>Acceso Rápido</h3>
+      <div class="links-grid">
+        <a href="/products" class="nav-link primary">
+          Ver todos los productos
+        </a>
+        <a href="/carts" class="nav-link secondary">
+          Gestión de carritos
+        </a>
+        <a href="/realtimeproducts" class="nav-link accent">
+          Gestión de produtos en tiempo real
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección de Gestión de Datos -->
+  <div class="data-management-section">
+    <div class="section-header">
+      <h2>Gestión de Datos</h2>
+      <p class="section-subtitle">Herramientas para importar, exportar y migrar datos</p>
+    </div>
+    
+    <div class="management-grid">
+      <!-- Semilla de datos -->
+      <div class="management-card">
+        <div class="card-header">
+          <h3>Productos de Ejemplo</h3>
+        </div>
+        <div class="card-content">
+          <p>Cargar productos de ejemplo con imágenes y datos completos</p>
+          <button id="loadSeedProducts" class="action-btn primary">
+            Cargar Productos de Ejemplo
+          </button>
+        </div>
+      </div>
+
+      <!-- Migrar datos -->
+      <div class="management-card">
+        <div class="card-header">
+          <h3>Migrar Datos</h3>
+        </div>
+        <div class="card-content">
+          <p>Migrar datos entre MongoDB y File System</p>
+          <div class="migration-buttons">
+            <button id="migrateToMongo" class="action-btn accent">
+              FS → MongoDB
+            </button>
+            <button id="migrateToFS" class="action-btn accent">
+              MongoDB → FS
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Configuración inicial -->
+      <div class="management-card">
+        <div class="card-header">
+          <h3>Configuración</h3>
+        </div>
+        <div class="card-content">
+          <p>Ejecutar configuración inteligente del sistema</p>
+          <button id="smartSetup" class="action-btn info">
+            Configuración Automática
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de productos recientes -->
+  <div class="recent-products">
+    <div class="section-header">
+      <h2>Últimos 10 Productos</h2>
+      <p class="section-subtitle">Los 10 productos más recientes en el sistema</p>
+    </div>
+    
+    {{#if products.length}}
+      <div class="products-list">
+        {{#each products}}
+          <div class="product-item {{#unless status}}unavailable{{/unless}}">
+            <div class="product-info">
+              <h4 class="product-title">{{title}}</h4>
+              <p class="product-details">
+                <span class="price">${{price}}</span> • 
+                <span class="code">{{code}}</span> • 
+                <span class="stock">Stock: {{stock}}</span>
+              </p>
+            </div>
+            <div class="product-status">
+              {{#if status}}
+                <span class="status-badge available">Disponible</span>
+              {{else}}
+                <span class="status-badge unavailable">No disponible</span>
+              {{/if}}
+            </div>
+          </div>
+        {{/each}}
+      </div>
+    {{else}}
+      <div class="empty-state">
+        <p>No hay productos todavía.</p>
+        <p>¡Comienza agregando algunos productos al sistema!</p>
+      </div>
+    {{/if}}
+  </div>
+
+
+</div>
+
+<style>
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.dashboard-header h1 {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 2.5rem;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.persistence-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.toggle-persistence-btn {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.toggle-persistence-btn:hover {
+  background: linear-gradient(135deg, #0056b3, #004085);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
+}
+
+.toggle-persistence-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.toggle-persistence-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.badge-label {
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.badge-value {
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.badge-value.mongo {
+  background: #4caf50;
+  color: white;
+}
+
+.badge-value.fs {
+  background: #ff9800;
+  color: white;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.stats-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.products-card .card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.carts-card .card-header {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.card-header {
+  padding: 20px;
+  color: white;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.card-content {
+  padding: 20px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+.stat-row.main-stat {
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 15px 0;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.stat-label {
+  color: #495057;
+}
+
+.stat-value {
+  font-weight: bold;
+  font-size: 1.2rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.stat-value.total {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.stat-value.available {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.stat-value.unavailable {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.stat-value.with-products {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.stat-value.empty {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.stat-value.counter {
+  background: #e8f4fd;
+  color: #0277bd;
+}
+
+.recent-products {
+  margin-bottom: 40px;
+}
+
+.section-header {
+  margin-bottom: 20px;
+}
+
+.section-header h2 {
+  color: #2c3e50;
+  margin: 0 0 5px 0;
+  font-size: 1.8rem;
+}
+
+.section-subtitle {
+  color: #6c757d;
+  margin: 0;
+  font-style: italic;
+}
+
+.products-list {
+  display: grid;
+  gap: 15px;
+}
+
+.product-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid #28a745;
+  transition: all 0.2s ease;
+}
+
+.product-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.product-item.unavailable {
+  border-left-color: #dc3545;
+  background: #fff5f5;
+}
+
+.product-title {
+  margin: 0 0 5px 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.product-details {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.price {
+  font-weight: bold;
+  color: #28a745;
+}
+
+.code {
+  font-family: 'Courier New', monospace;
+  background: #f8f9fa;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-badge.available {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.unavailable {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  color: #6c757d;
+}
+
+.empty-state p {
+  margin: 5px 0;
+}
+
+.navigation-links {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.link-group h3 {
+  margin: 0 0 20px 0;
+  color: #2c3e50;
+  font-size: 1.3rem;
+}
+
+.links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.nav-link {
+  display: block;
+  padding: 15px 20px;
+  text-decoration: none;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-link.primary {
+  background: #007bff;
+  color: white;
+}
+
+.nav-link.primary:hover {
+  background: #0056b3;
+  transform: translateY(-2px);
+}
+
+.nav-link.secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.nav-link.secondary:hover {
+  background: #545b62;
+  transform: translateY(-2px);
+}
+
+.nav-link.accent {
+  background: #28a745;
+  color: white;
+}
+
+.nav-link.accent:hover {
+  background: #1e7e34;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 2rem;
+  }
+  
+  .header-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+  }
+  
+  .toggle-persistence-btn {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .links-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .product-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+/* Estilos para la sección de gestión de datos */
+.data-management-section {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 2px solid #e9ecef;
+}
+
+.management-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.management-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.management-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.management-card .card-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 15px 20px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.management-card .card-header h3 {
+  margin: 0;
+  color: #495057;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.management-card .card-content {
+  padding: 20px;
+}
+
+.management-card .card-content p {
+  margin: 0 0 15px 0;
+  color: #6c757d;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.action-btn {
+  display: inline-block;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  width: 100%;
+  text-align: center;
+}
+
+.action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+}
+
+.action-btn.primary:hover {
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+}
+
+.action-btn.secondary {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  color: white;
+}
+
+.action-btn.secondary:hover {
+  background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+}
+
+.action-btn.accent {
+  background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%);
+  color: white;
+  margin: 2px;
+}
+
+.action-btn.accent:hover {
+  background: linear-gradient(135deg, #117a8b 0%, #0c5460 100%);
+}
+
+.action-btn.warning {
+  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+  color: #212529;
+}
+
+.action-btn.warning:hover {
+  background: linear-gradient(135deg, #e0a800 0%, #c69500 100%);
+}
+
+.action-btn.info {
+  background: linear-gradient(135deg, #20c997 0%, #1a9b7f 100%);
+  color: white;
+}
+
+.action-btn.info:hover {
+  background: linear-gradient(135deg, #1a9b7f 0%, #148067 100%);
+}
+
+.migration-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.migration-buttons .action-btn {
+  width: calc(50% - 5px);
+}
+
+@media (max-width: 768px) {
+  .management-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .migration-buttons {
+    flex-direction: column;
+  }
+  
+  .migration-buttons .action-btn {
+    width: 100%;
+  }
+}
+</style>
+
+<script>
+
+
+document.addEventListener('DOMContentLoaded', function() {
+  const toggleBtn = document.getElementById('togglePersistence');
+  
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', async function() {
+      try {
+        // Deshabilitar botón durante la operación
+        toggleBtn.disabled = true;
+        toggleBtn.textContent = 'Cambiando...';
+        
+        // Obtener persistencia actual
+        const currentResponse = await fetch('/api/config/persistence');
+        
+        if (!currentResponse.ok) {
+          throw new Error(`HTTP Error: ${currentResponse.status}`);
+        }
+        
+        const currentData = await currentResponse.json();
+        
+        if (!currentData.success) {
+          throw new Error('No se pudo obtener la persistencia actual');
+        }
+        
+        // Determinar nueva persistencia
+        const newPersistence = currentData.persistence === 'fs' ? 'mongo' : 'fs';
+        
+        // Mostrar confirmación
+        const result = await Swal.fire({
+          title: '¿Cambiar sistema de persistencia?',
+          html: `
+            <div style="text-align: left; margin: 20px 0;">
+              <p><strong>Sistema actual:</strong> ${currentData.persistence.toUpperCase()}</p>
+              <p><strong>Nuevo sistema:</strong> ${newPersistence.toUpperCase()}</p>
+              <hr style="margin: 15px 0;">
+              <div style="color: #0c5460; background: #d1ecf1; padding: 12px; border-radius: 6px; border: 1px solid #bee5eb;">
+                <p style="margin: 0 0 8px 0; font-weight: bold;">ℹ️ Información</p>
+                <p style="margin: 0; font-size: 0.9em;">Cada sistema mantiene sus propios datos independientes. Al cambiar verás los productos y carritos correspondientes a ${newPersistence.toUpperCase()}.</p>
+              </div>
+            </div>
+          `,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: `Cambiar a ${newPersistence.toUpperCase()}`,
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#007bff'
+        });
+        
+        if (result.isConfirmed) {
+          // Realizar el cambio
+          const changeResponse = await fetch('/api/config/persistence', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ persistence: newPersistence })
+          });
+          
+          if (!changeResponse.ok) {
+            const errorText = await changeResponse.text();
+            throw new Error(`HTTP Error: ${changeResponse.status} - ${errorText}`);
+          }
+          
+          const changeData = await changeResponse.json();
+          
+          if (changeData.success) {
+            // Sincronizar carritos después del cambio de persistencia
+            
+            // Limpiar localStorage completamente
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && (key.startsWith('cart_') || key === 'activeCartId')) {
+                keysToRemove.push(key);
+              }
+            }
+            keysToRemove.forEach(key => {
+              localStorage.removeItem(key);
+            });
+            
+            // Esperar un momento para que el cambio se estabilice
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Forzar actualización consultando carritos
+            try {
+              const cartsResponse = await fetch('/api/carts');
+              if (cartsResponse.ok) {
+                const data = await cartsResponse.json();
+                
+                // Extraer carritos del formato { status: 'success', payload: [...] }
+                const carts = data.payload || data;
+                
+                if (Array.isArray(carts)) {
+                  carts.forEach(cart => {
+                    const cartId = cart.id || cart._id;
+                    if (cartId) {
+                      localStorage.setItem(`cart_${cartId}_exists`, 'true');
+                    }
+                  });
+                }
+              }
+            } catch (error) {
+              // Error silencioso para mantener la función estable
+            }
+            
+            await Swal.fire({
+              icon: 'warning',
+              title: 'Sistema de Persistencia Cambiado',
+              html: `
+                <div style="text-align: left; margin: 20px 0;">
+                  <p style="margin-bottom: 15px;"><strong>✅ ${changeData.message}</strong></p>
+                  <hr style="margin: 15px 0; border-color: #dee2e6;">
+                  <div style="color: #856404; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeaa7;">
+                    <p style="margin: 0 0 10px 0; font-weight: bold;">⚠️ Reinicio Requerido</p>
+                    <p style="margin: 0 0 10px 0;">Para que los cambios tomen efecto completamente, debes reiniciar el servidor:</p>
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; margin: 10px 0;">
+                      <strong>1.</strong> npm stop<br>
+                      <strong>2.</strong> npm start
+                    </div>
+                    <p style="margin: 0; font-size: 0.9em;">O utiliza <strong>Ctrl+C</strong> en la terminal del servidor y ejecuta <strong>npm start</strong> nuevamente.</p>
+                  </div>
+                  <hr style="margin: 15px 0; border-color: #dee2e6;">
+                  <div style="color: #155724; background: #d4edda; padding: 10px; border-radius: 4px; border: 1px solid #c3e6cb;">
+                    <p style="margin: 0; font-size: 0.9em;">📝 <strong>Nota:</strong> Los datos del carrito se han sincronizado con el nuevo sistema de persistencia.</p>
+                  </div>
+                </div>
+              `,
+              confirmButtonText: 'Entendido',
+              confirmButtonColor: '#ffc107',
+              allowOutsideClick: false
+            });
+          } else {
+            throw new Error(changeData.error || 'Error al cambiar persistencia');
+          }
+        }
+        
+      } catch (error) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.message || 'No se pudo cambiar la persistencia',
+          confirmButtonColor: '#dc3545'
+        });
+      } finally {
+        // Restaurar botón
+        toggleBtn.disabled = false;
+        const currentPersistence = '{{stats.persistence}}';
+        toggleBtn.textContent = currentPersistence === 'MONGO' ? 'Cambiar a File System' : 'Cambiar a MongoDB';
+      }
+    });
+  }
+
+  // Funcionalidad para los botones de gestión de datos
+  
+  // Cargar productos de ejemplo
+  const loadSeedBtn = document.getElementById('loadSeedProducts');
+  if (loadSeedBtn) {
+    loadSeedBtn.addEventListener('click', async function() {
+      const result = await Swal.fire({
+        title: 'Cargar Productos de Ejemplo',
+        html: `
+          <div style="text-align: left; margin: 20px 0;">
+            <p>Esta acción cargará 24 productos de ejemplo con:</p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>� Electrónica (mouse, teclados, auriculares)</li>
+              <li>🏠 Productos para el hogar</li>
+              <li>⚽ Artículos deportivos</li>
+              <li>📚 Libros y literatura</li>
+              <li>� Ropa y accesorios</li>
+              <li>🧸 Juguetes y entretenimiento</li>
+              <li>🖼️ Imágenes reales de Freepik</li>
+            </ul>
+            <p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 4px; margin: 10px 0;">
+              ⚠️ Se agregarán a los productos existentes
+            </p>
+          </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Cargar Productos',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#007bff'
+      });
+
+      if (result.isConfirmed) {
+        loadSeedBtn.disabled = true;
+        loadSeedBtn.textContent = 'Cargando...';
+        
+        try {
+          const response = await fetch('/api/admin/seed-products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (response.ok) {
+            await Swal.fire({
+              title: 'Productos Cargados',
+              text: 'Los productos de ejemplo se han cargado correctamente',
+              icon: 'success',
+              timer: 3000
+            });
+            
+            // Recargar página para mostrar nuevos productos
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            throw new Error('Error al cargar productos');
+          }
+        } catch (error) {
+          await Swal.fire({
+            title: 'Error',
+            text: 'No se pudieron cargar los productos de ejemplo',
+            icon: 'error'
+          });
+        } finally {
+          loadSeedBtn.disabled = false;
+          loadSeedBtn.textContent = 'Cargar Productos de Ejemplo';
+        }
+      }
+    });
+  }
+
+
+
+
+
+  // Migración FS -> MongoDB
+  const migrateToMongoBtn = document.getElementById('migrateToMongo');
+  if (migrateToMongoBtn) {
+    migrateToMongoBtn.addEventListener('click', async function() {
+      const result = await Swal.fire({
+        title: '🍃 Migrar a MongoDB',
+        text: 'Migrar todos los datos de File System a MongoDB',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: '🔄 Migrar',
+        cancelButtonText: 'Cancelar'
+      });
+
+      if (result.isConfirmed) {
+        migrateToMongoBtn.disabled = true;
+        migrateToMongoBtn.textContent = '⏳ Migrando...';
+        
+        try {
+          const response = await fetch('/api/admin/migrate/fs-to-mongo', {
+            method: 'POST'
+          });
+          
+          if (response.ok) {
+            await Swal.fire({
+              title: '✅ Migración Completada',
+              text: 'Datos migrados de File System a MongoDB',
+              icon: 'success'
+            });
+          } else {
+            throw new Error('Error en migración');
+          }
+        } catch (error) {
+          await Swal.fire({
+            title: 'Error',
+            text: 'No se pudo completar la migración',
+            icon: 'error'
+          });
+        } finally {
+          migrateToMongoBtn.disabled = false;
+          migrateToMongoBtn.textContent = 'FS → MongoDB';
+        }
+      }
+    });
+  }
+
+  // Migración MongoDB -> FS
+  const migrateToFSBtn = document.getElementById('migrateToFS');
+  if (migrateToFSBtn) {
+    migrateToFSBtn.addEventListener('click', async function() {
+      const result = await Swal.fire({
+        title: '📁 Migrar a File System',
+        text: 'Migrar todos los datos de MongoDB a File System',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: '🔄 Migrar',
+        cancelButtonText: 'Cancelar'
+      });
+
+      if (result.isConfirmed) {
+        migrateToFSBtn.disabled = true;
+        migrateToFSBtn.textContent = '⏳ Migrando...';
+        
+        try {
+          const response = await fetch('/api/admin/migrate/mongo-to-fs', {
+            method: 'POST'
+          });
+          
+          if (response.ok) {
+            await Swal.fire({
+              title: '✅ Migración Completada',
+              text: 'Datos migrados de MongoDB a File System',
+              icon: 'success'
+            });
+          } else {
+            throw new Error('Error en migración');
+          }
+        } catch (error) {
+          await Swal.fire({
+            title: 'Error',
+            text: 'No se pudo completar la migración',
+            icon: 'error'
+          });
+        } finally {
+          migrateToFSBtn.disabled = false;
+          migrateToFSBtn.textContent = '📁 MongoDB → FS';
+        }
+      }
+    });
+  }
+
+
+
+  // Configuración automática
+  const smartSetupBtn = document.getElementById('smartSetup');
+  if (smartSetupBtn) {
+    smartSetupBtn.addEventListener('click', async function() {
+      const result = await Swal.fire({
+        title: '🚀 Configuración Automática',
+        html: `
+          <div style="text-align: left; margin: 20px 0;">
+            <p>La configuración automática:</p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>🔍 Detectará la mejor configuración</li>
+              <li>⚙️ Configurará MongoDB o File System</li>
+              <li>📦 Cargará datos de ejemplo si es necesario</li>
+            </ul>
+          </div>
+        `,
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: '🚀 Ejecutar',
+        cancelButtonText: 'Cancelar'
+      });
+
+      if (result.isConfirmed) {
+        smartSetupBtn.disabled = true;
+        smartSetupBtn.textContent = '⏳ Configurando...';
+        
+        try {
+          const response = await fetch('/api/admin/smart-setup', {
+            method: 'POST'
+          });
+          
+          if (response.ok) {
+            await Swal.fire({
+              title: '✅ Configuración Completada',
+              text: 'El sistema ha sido configurado automáticamente',
+              icon: 'success'
+            });
+            
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            throw new Error('Error en configuración');
+          }
+        } catch (error) {
+          await Swal.fire({
+            title: 'Error',
+            text: 'No se pudo completar la configuración',
+            icon: 'error'
+          });
+        } finally {
+          smartSetupBtn.disabled = false;
+          smartSetupBtn.textContent = '🚀 Configuración Automática';
+        }
+      }
+    });
+  }
+});
+</script>

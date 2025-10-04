@@ -1,4 +1,4 @@
-const dao = require('../dao/fs/products.dao');
+const { products: dao } = require('../dao/factory');
 
 exports.getAll = async () => dao.getAll();
 
@@ -75,3 +75,47 @@ exports.update = async (id, updates) => {
 };
 
 exports.remove = async (id) => dao.remove(id);
+
+exports.listPaginated = async ({ limit, page, sort, query, category, status }) => {
+  const filter = {};
+  if (query) {
+    const m = String(query).match(/^(\w+):(.+)$/);
+    if (m) {
+      const k = m[1], v = m[2];
+      if (k === 'status') filter.status = String(v) === 'true';
+      else if (k === 'category') filter.category = String(v);
+      else filter[k] = v;
+    } else {
+      filter.category = String(query);
+    }
+  }
+  if (category && category.trim() !== '') filter.category = String(category);
+  if (typeof status !== 'undefined' && status !== '' && status !== null) {
+    filter.status = String(status) === 'true';
+  }
+
+  return await dao.paginate({ limit, page, sort, filter });
+};
+
+exports.removeAll = async () => dao.removeAll();
+
+exports.getCategories = async () => {
+  const categories = await dao.getUniqueCategories();
+  return categories.map(cat => ({
+    value: cat,
+    text: cat.charAt(0).toUpperCase() + cat.slice(1)
+  }));
+};
+
+exports.getStats = async () => {
+  const products = await dao.getAll();
+  const total = products.length;
+  const available = products.filter(p => p.status === true).length;
+  const unavailable = products.filter(p => p.status === false).length;
+  
+  return {
+    total,
+    available,
+    unavailable
+  };
+};

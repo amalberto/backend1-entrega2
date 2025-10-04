@@ -1,0 +1,190 @@
+{{> header}}
+
+<div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+  
+  <nav style="margin-bottom: 20px;">
+    <a href="/products" style="color: #007bff; text-decoration: none;">← Volver al catálogo</a>
+  </nav>
+  
+  <div style="display: flex; flex-direction: column; gap: 30px;">
+    
+    <!-- DETALLES DEL PRODUCTO -->
+    <div>
+      <h1 style="margin: 0 0 15px 0; color: #333; font-size: 32px;">{{product.title}}</h1>
+      
+      <p style="color: #666; margin: 10px 0 20px 0; line-height: 1.5; font-size: 16px;">{{product.description}}</p>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+        
+        <!-- INFORMACIÓN DEL PRODUCTO -->
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+          <div style="font-size: 28px; font-weight: bold; color: #28a745; margin-bottom: 15px;">
+            ${{product.price}}
+          </div>
+          
+          <div style="margin: 10px 0;">
+            <strong>Stock disponible:</strong> 
+            <span style="color: {{#if (gt product.stock 10)}}#28a745{{else}}{{#if (gt product.stock 0)}}#ffc107{{else}}#dc3545{{/if}}{{/if}};">
+              {{product.stock}} unidades
+            </span>
+          </div>
+          
+          <div style="margin: 10px 0;">
+            <strong>Código:</strong> {{product.code}}
+          </div>
+          
+          <div style="margin: 10px 0;">
+            <strong>Categoría:</strong> 
+            <span style="text-transform: capitalize;">{{product.category}}</span>
+          </div>
+          
+          <div style="margin: 10px 0;">
+            <strong>Estado:</strong> 
+            {{#if product.status}}
+            <span style="color: #28a745;">Disponible</span>
+            {{else}}
+            <span style="color: #dc3545;">No disponible</span>
+            {{/if}}
+          </div>
+        </div>
+        
+        <!-- ACCIONES DE COMPRA -->
+        <div>
+          {{#if (and product.status (gt product.stock 0))}}
+          
+          <div style="margin-bottom: 20px;">
+            <label for="quantity" style="font-weight: bold; display: block; margin-bottom: 8px;">Cantidad:</label>
+            <input type="number" id="quantity" min="1" max="{{product.stock}}" value="1" 
+                   style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; text-align: center; font-size: 16px;">
+          </div>
+          
+          {{#if product.status}}
+            <button onclick="addToCart({{product.id}})" 
+                    style="background: #28a745; color: white; border: none; padding: 15px 30px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-bottom: 10px;">
+              Agregar al carrito
+            </button>
+          {{else}}
+            <button onclick="showUnavailableAlert()" disabled
+                    style="background: #6c757d; color: white; border: none; padding: 15px 30px; border-radius: 4px; cursor: not-allowed; font-size: 16px; font-weight: bold; width: 100%; margin-bottom: 10px;">
+              Producto no disponible
+            </button>
+          {{/if}}
+          
+          {{else}}
+          <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 4px; text-align: center; margin-bottom: 20px;">
+            No disponible
+          </div>
+          {{/if}}
+          
+          <a href="/products" 
+             style="display: block; background: #6c757d; color: white; text-decoration: none; padding: 15px 30px; border-radius: 4px; text-align: center; font-size: 16px;">
+            Ver más productos
+          </a>
+        </div>
+        
+      </div>
+      
+    </div>
+    
+    <!-- IMAGEN DEL PRODUCTO -->
+    <div style="margin-top: 30px;">
+      <h3 style="margin-bottom: 15px; color: #333;">Imagen del producto</h3>
+      {{#if product.thumbnails.length}}
+      <div style="text-align: center;">
+        <img src="{{product.thumbnails.[0]}}" alt="{{product.title}}" 
+             style="max-width: 100%; width: 500px; height: 400px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
+             onerror="this.src='https://via.placeholder.com/500x400?text=Sin+Imagen'">
+      </div>
+      {{else}}
+      <div style="width: 100%; max-width: 500px; height: 400px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d; margin: 0 auto;">
+        Sin imagen disponible
+      </div>
+      {{/if}}
+    </div>
+  </div>
+  
+  <!-- INFORMACIÓN ADICIONAL -->
+  {{#if product.thumbnails.length}}
+  {{#if (gt product.thumbnails.length 1)}}
+  <div style="margin-top: 40px;">
+    <h3>Más imágenes</h3>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      {{#each product.thumbnails}}
+      <img src="{{this}}" alt="{{../product.title}}" 
+           style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; cursor: pointer;"
+           onclick="document.querySelector('img[alt=&quot;{{../product.title}}&quot;]').src = this.src">
+      {{/each}}
+    </div>
+  </div>
+  {{/if}}
+  {{/if}}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  // Función para mostrar alerta de producto no disponible
+  function showUnavailableAlert() {
+    const productName = document.querySelector('h1').textContent.trim();
+    Swal.fire({
+      icon: 'warning',
+      title: 'Producto no disponible',
+      text: `El producto "${productName}" no está disponible en este momento.`,
+      confirmButtonText: 'Entendido',
+      confirmButtonColor: '#6c757d'
+    });
+  }
+
+  async function addToCart(productId) {
+    try {
+      const quantity = parseInt(document.getElementById('quantity').value) || 1;
+      const productName = document.querySelector('h1').textContent.trim(); // Obtener nombre del producto del DOM
+
+      
+      // Usar el sistema de carrito activo del layout
+      const cid = await ensureActiveCart();
+      if (!cid) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Sin carrito activo',
+          text: 'Use "Gestionar carrito" para seleccionar o crear un carrito',
+          confirmButtonColor: '#007bff'
+        });
+        return;
+      }
+      
+      // Agregar de a 1 según la consigna (repetir quantity veces)
+      for (let i = 0; i < quantity; i++) {
+
+        const res = await fetch(`/api/carts/${cid}/product/${productId}`, { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (!res.ok) { 
+          console.error('Error adding to cart:', res.status);
+          throw new Error(`Error al agregar producto en iteración ${i + 1}`); 
+        }
+      }
+      
+      updateCartBadge();
+      
+      // Mostrar confirmación con nombre del producto
+      Swal.fire({
+        icon: 'success',
+        title: '¡Producto agregado!',
+        text: `${quantity}x "${productName}" agregado al carrito #${cid}`,
+        timer: 3000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo agregar el producto al carrito'
+      });
+    }
+  }
+</script>

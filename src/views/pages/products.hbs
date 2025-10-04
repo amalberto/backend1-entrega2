@@ -1,0 +1,401 @@
+{{> header}}
+
+<style>
+  .product-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  
+  .product-card {
+    width: calc(25% - 15px);
+    border: none;
+           <select name="category" style="border: 1px solid #ddd; border-radius: 4px; padding: 8px;">
+          <option value="">Todas</option>
+          {{#each categories}}
+          <option value="{{this.value}}" {{#if (eq ../currentQuery.category this.value)}}selected{{/if}}>{{this.text}}</option>
+          {{/each}}
+        </select> 0;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 420px;
+  }
+  
+  .product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  }
+  
+  .product-image {
+    width: 100%;
+    height: 180px;
+    background: #f8f9fa;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .card-content {
+    padding: 15px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  .product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+  
+  .product-image:hover img {
+    transform: scale(1.05);
+  }
+  
+  .no-image {
+    color: #6c757d;
+    font-size: 14px;
+    text-align: center;
+  }
+  
+  .product-card h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1.3;
+  }
+  
+  .product-card p {
+    margin: 5px 0;
+    color: #666;
+  }
+  
+  .description {
+    font-size: 13px;
+    line-height: 1.4;
+    height: 35px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 10px;
+  }
+  
+  .product-info {
+    font-size: 12px;
+    color: #888;
+    margin: 8px 0;
+  }
+  
+  .stock-info {
+    color: #28a745;
+    font-weight: bold;
+  }
+  
+  .price {
+    font-size: 18px;
+    font-weight: bold;
+    color: #28a745;
+  }
+  
+  .buttons {
+    margin-top: 15px;
+    display: flex;
+    gap: 8px;
+  }
+  
+  .btn-ver {
+    flex: 1;
+    background: #007bff;
+    color: white;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 13px;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-ver:hover {
+    background: #0056b3;
+  }
+  
+  .btn-agregar {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-agregar:hover {
+    background: #1e7e34;
+  }
+  
+  .btn-disabled {
+    background: #6c757d !important;
+    cursor: not-allowed !important;
+  }
+  
+  .btn-disabled:hover {
+    background: #6c757d !important;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .product-card {
+      width: 100%;
+    }
+  }
+  
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .product-card {
+      width: calc(50% - 10px);
+    }
+  }
+  
+  @media (min-width: 1025px) and (max-width: 1200px) {
+    .product-card {
+      width: calc(33.333% - 14px);
+    }
+  }
+</style>
+
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+  <h1>Catálogo de Productos</h1>
+  
+  <!-- FILTROS -->
+  <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+    <form method="GET" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: end;">
+      
+      <div>
+        <label>Productos por página:</label><br>
+        <input name="limit" type="number" min="1" max="50" value="{{#if currentQuery.limit}}{{currentQuery.limit}}{{else}}10{{/if}}" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+      </div>
+      
+      <div>
+        <label>Ordenar por precio:</label><br>
+        <select name="sort" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+          <option value="">Sin ordenar</option>
+          <option value="asc" {{#if (eq currentQuery.sort "asc")}}selected{{/if}}>Menor a mayor</option>
+          <option value="desc" {{#if (eq currentQuery.sort "desc")}}selected{{/if}}>Mayor a menor</option>
+        </select>
+      </div>
+      
+      <div>
+        <label>Categoría:</label><br>
+        <select name="category" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+          <option value="">Todas</option>
+          {{#each categories}}
+          <option value="{{this.value}}" {{#if (eq ../currentQuery.category this.value)}}selected{{/if}}>{{this.text}}</option>
+          {{/each}}
+        </select>
+      </div>
+      
+      <div>
+        <label>Disponibilidad:</label><br>
+        <select name="status" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+          <option value="">Todos</option>
+          <option value="true" {{#if (eq currentQuery.status "true")}}selected{{/if}}>Disponible</option>
+          <option value="false" {{#if (eq currentQuery.status "false")}}selected{{/if}}>No disponible</option>
+        </select>
+      </div>
+      
+      <div>
+        <button type="submit" style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Filtrar</button>
+        <a href="/products" style="background: #6c757d; color: white; text-decoration: none; padding: 10px 20px; border-radius: 4px; margin-left: 5px;">Limpiar</a>
+      </div>
+      
+    </form>
+  </div>
+
+  <!-- PRODUCTOS -->
+  <div class="product-grid">
+    {{#each payload}}
+    <div class="product-card">
+      <div class="product-image">
+        {{#if thumbnails}}
+        {{#if thumbnails.[0]}}
+        <img src="{{thumbnails.[0]}}" alt="{{title}}" 
+             onerror="this.parentNode.innerHTML='<div class=\'no-image\'>📷<br>Sin imagen</div>'">
+        {{else}}
+        <div class="no-image">📷<br>Sin imagen</div>
+        {{/if}}
+        {{else}}
+        <div class="no-image">📷<br>Sin imagen</div>
+        {{/if}}
+      </div>
+      
+      <div class="card-content">
+        <div>
+          <h3>{{title}}</h3>
+          <p class="description">{{description}}</p>
+          <p class="price">${{price}}</p>
+          <p class="stock-info">Stock: {{stock}}</p>
+          
+          <!-- Indicador de disponibilidad -->
+          <div style="margin: 8px 0; display: flex; align-items: center; gap: 5px;">
+            {{#if status}}
+              <span style="color: #28a745; font-weight: bold;">✓ Disponible</span>
+            {{else}}
+              <span style="color: #dc3545; font-weight: bold;">✗ No disponible</span>
+            {{/if}}
+          </div>
+          
+          <p class="product-info">{{code}} • {{category}}</p>
+        </div>
+        
+        <div class="buttons">
+          <a href="/products/{{id}}" class="btn-ver">Ver</a>
+          {{#if status}}
+            <button onclick="addToCart('{{id}}', '{{title}}')" class="btn-agregar">Agregar</button>
+          {{else}}
+            <button onclick="showUnavailableAlert('{{title}}')" class="btn-agregar btn-disabled" disabled>No disponible</button>
+          {{/if}}
+        </div>
+      </div>
+    </div>
+    {{/each}}
+  </div>
+
+  <!-- PAGINACIÓN -->
+  <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin: 30px 0;">
+    
+    {{#if hasPrevPage}}
+    <a href="{{prevLink}}" style="background: #007bff; color: white; text-decoration: none; padding: 8px 16px; border-radius: 4px;">
+      « Anterior
+    </a>
+    {{else}}
+    <span style="background: #e9ecef; color: #6c757d; padding: 8px 16px; border-radius: 4px;">
+      « Anterior
+    </span>
+    {{/if}}
+    
+    <span style="margin: 0 15px;">
+      Página <strong>{{page}}</strong> de <strong>{{totalPages}}</strong>
+    </span>
+    
+    {{#if hasNextPage}}
+    <a href="{{nextLink}}" style="background: #007bff; color: white; text-decoration: none; padding: 8px 16px; border-radius: 4px;">
+      Siguiente »
+    </a>
+    {{else}}
+    <span style="background: #e9ecef; color: #6c757d; padding: 8px 16px; border-radius: 4px;">
+      Siguiente »
+    </span>
+    {{/if}}
+    
+  </div>
+  
+  <div style="text-align: center; color: #666; margin-top: 10px;">
+    Mostrando {{payload.length}} de {{total}} productos
+  </div>
+
+</div>
+
+<script>
+  // Función para mostrar alerta de producto no disponible
+  function showUnavailableAlert(productName) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Producto no disponible',
+      text: `El producto "${productName}" no está disponible en este momento.`,
+      confirmButtonText: 'Entendido',
+      confirmButtonColor: '#6c757d'
+    });
+  }
+
+  // Override global addToCart function for products page with quantity selector
+  async function addToCart(productId, productName) {
+    try {
+      // Mostrar selector de cantidad
+      const { value: quantity } = await Swal.fire({
+        title: `Agregar "${productName}"`,
+        icon: 'question',
+        input: 'number',
+        inputLabel: '¿Cuántas unidades deseas agregar?',
+        inputValue: 1,
+        inputAttributes: {
+          min: 1,
+          max: 10,
+          step: 1
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Agregar al carrito',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#dc3545',
+        inputValidator: (value) => {
+          if (!value || value < 1) {
+            return 'Debes ingresar una cantidad válida (mínimo 1)';
+          }
+          if (value > 10) {
+            return 'La cantidad máxima es 10 unidades';
+          }
+        }
+      });
+
+      if (!quantity) return; // Usuario canceló
+
+      // Usar el sistema de carrito activo del layout
+      const cid = await ensureActiveCart();
+      if (!cid) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Sin carrito activo',
+          text: 'Use "Gestionar carrito" para seleccionar o crear un carrito',
+          confirmButtonColor: '#007bff'
+        });
+        return;
+      }
+      
+      try {
+        // Agregar de a 1 según la consigna (repetir quantity veces)
+        for (let i = 0; i < quantity; i++) {
+          const res = await fetch(`/api/carts/${cid}/product/${productId}`, { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          if (!res.ok) { 
+            console.error('Error adding to cart:', res.status);
+            throw new Error('Error al agregar producto'); 
+          }
+        }
+        updateCartBadge();
+        
+        // Mostrar confirmación con nombre del producto
+        Swal.fire({
+          icon: 'success',
+          title: '¡Producto agregado!',
+          text: `${quantity}x "${productName}" agregado al carrito #${cid}`,
+          timer: 3000,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
+      } catch (error) {
+        console.error('Error adding to cart:', error);
+        throw error;
+      }
+      
+    } catch (error) {
+      console.error('Error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo agregar el producto al carrito',
+        confirmButtonColor: '#dc3545'
+      });
+    }
+  }
+</script>
